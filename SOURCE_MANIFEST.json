@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "created_at_utc": "2026-09-17T23:05:31.667384+00:00",
+  "created_at_utc": "2026-09-17T23:12:29.573836+00:00",
   "operation": "public_release_snapshot",
-  "parent_release_commit": "64eece8882df38317822fb280984a45e155e0313",
+  "parent_release_commit": "5fecca25600445c77b474526e148ef5b04970253",
   "file_count": 281,
-  "total_bytes": 195541500,
+  "total_bytes": 195541899,
   "files": [
     {
       "path": ".env.example",
@@ -1219,8 +1219,8 @@
       "category": "development_experiment_evidence",
       "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
-      "bytes": 686,
-      "sha256": "7bced8e5fa3fe4c690f09c004eaaa7c14465355d2dd81dc08864a2db90a1a6ad"
+      "bytes": 1084,
+      "sha256": "86f758e887075e3af9058361e79a835b288bc5326c1b39dc4524534615eaee22"
     },
     {
       "path": "results/hosted_game_bundle_smoke.json",
@@ -2227,16 +2227,16 @@
       "category": "authored_source",
       "provenance": "Project-authored replay interface and recorded game states with actual probabilities and outcomes.",
       "license_scope": "MIT for authored code; external model outputs/marks retain applicable rights",
-      "bytes": 5409,
-      "sha256": "20a8b680381177b973cab262a675a81e74073397ab0f79df3ae1c51fe95fa888"
+      "bytes": 5408,
+      "sha256": "19174868f1bd920a3326f256e8f199d60bb7f18e25363ab801594cbe3afb61f5"
     },
     {
       "path": "web/side-by-side.js",
       "category": "authored_source",
       "provenance": "Project-authored replay interface and recorded game states with actual probabilities and outcomes.",
       "license_scope": "MIT for authored code; external model outputs/marks retain applicable rights",
-      "bytes": 20561,
-      "sha256": "dbab1bd90031eef656e7f07bc2fd6ca978cb2c725f4b72fd86445884155ed316"
+      "bytes": 20563,
+      "sha256": "ce9e3c30fc49f36138b42255b445cf8aa533bc9a841edd4fca0c317ca9e14b53"
     },
     {
       "path": "web/side_by_side_results.json",

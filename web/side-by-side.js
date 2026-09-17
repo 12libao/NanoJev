@@ -288,7 +288,7 @@
 
   function selectHash() {
     if (!api.ready) return;
-    const game = location.hash.toLowerCase() === '#maze' ? 'maze' : 'snake';
+    const game = location.hash.toLowerCase() === '#snake' ? 'snake' : 'maze';
     const index = state.data.examples.findIndex((example) => example.game === game);
     setFrame(index, 0);
   }
@@ -312,7 +312,7 @@
       const response = await fetch('./side_by_side_results.json', { cache: 'no-store' });
       if (!response.ok) throw new Error(`The recording file could not be loaded (HTTP ${response.status}).`);
       state.data = await response.json(); validateData(state.data);
-      const game = location.hash.toLowerCase() === '#maze' ? 'maze' : 'snake';
+      const game = location.hash.toLowerCase() === '#snake' ? 'snake' : 'maze';
       state.example = state.data.examples.findIndex((example) => example.game === game);
       $('loadState').hidden = true; $('viewer').hidden = false;
       renderScene(); api.ready = true; renderFrame();
