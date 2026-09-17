@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NanoJev · 三方同例回放</title><link rel="stylesheet" href="./comparison.css"><script src="./comparison.js" defer></script></head>
+<body>
+  <main id="comparisonStage">
+    <header class="headline"><div><a href="./" class="brand">∷ NanoJev</a><span class="eyebrow">真实轨迹 / SAME MAP, THREE SYSTEMS</span><h1>同一张地图，三种决策。</h1></div><div class="protocol"><span class="live-dot"></span>保存的真实实验回放<p>按环境步同步 · 不代表实际耗时竞速</p></div></header>
+    <section class="case-bar"><div><span id="caseBadge" class="case-badge">等待数据</span><span id="mapLabel">没有预设轨迹</span></div><div><span id="controllerLabel">—</span><strong id="globalStep">—</strong></div></section>
+    <section id="panels" class="panels" aria-label="三方并排回放"><div class="empty">等待真实三方轨迹。请先运行视频素材组装脚本。</div></section>
+    <footer><div><span class="legend-dot agent"></span>当前位置 <span class="legend-dot goal"></span>目标 <span class="legend-dot wall"></span>墙</div><p id="frameNote">固定原 V3 的前 2 个 TEST + 前 2 个 OOD；没有按结果选地图。</p><span id="caseId"></span></footer>
+  </main>
+  <section class="controls"><label>控制器 <select id="policySelect" disabled></select></label><label>固定地图 <select id="caseSelect" disabled></select></label><button id="prev" disabled>←</button><button id="play" disabled>播放</button><button id="next" disabled>→</button><input id="slider" type="range" min="0" max="0" value="0" disabled><a href="./">完整实验页 ↗</a></section>
+  <p id="loadStatus" class="load-status" role="status">正在读取 comparison_results.json…</p>
+</body></html>
