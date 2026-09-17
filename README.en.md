@@ -100,8 +100,8 @@ Choice uses a shared scalar head and set attention. Boolean uses a single-path s
 The interactive replay runs with Python's built-in HTTP server:
 
 ```bash
-git clone https://github.com/TianyuCodings/NanoJev-dev.git
-cd NanoJev-dev
+git clone https://github.com/TianyuCodings/NanoJev.git
+cd NanoJev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 

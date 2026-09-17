@@ -99,8 +99,8 @@
 交互回放只需 Python：
 
 ```bash
-git clone https://github.com/TianyuCodings/NanoJev-dev.git
-cd NanoJev-dev
+git clone https://github.com/TianyuCodings/NanoJev.git
+cd NanoJev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 

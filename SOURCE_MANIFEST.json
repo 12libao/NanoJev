@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "created_at_utc": "2026-09-17T22:08:18.756608+00:00",
-  "operation": "private_development_snapshot",
+  "created_at_utc": "2026-09-17T22:24:19.378350+00:00",
+  "operation": "public_release_snapshot",
   "parent_release_commit": "614b302a069a648f4cdd00e447d57683d26db39c",
   "file_count": 260,
-  "total_bytes": 182791740,
+  "total_bytes": 182791716,
   "files": [
     {
       "path": ".env.example",
@@ -32,24 +32,24 @@
     },
     {
       "path": "README.en.md",
-      "bytes": 8334,
-      "sha256": "b568a9065b8ad5adfb2d9c6e4b3fd8e95aa87759546d6595ab3076ecdde48159",
+      "bytes": 8326,
+      "sha256": "149b05c8627ba29ba604af327d215e788c9a7b630383c017e6fdebb1a82a3fb3",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.md",
-      "bytes": 8334,
-      "sha256": "b568a9065b8ad5adfb2d9c6e4b3fd8e95aa87759546d6595ab3076ecdde48159",
+      "bytes": 8326,
+      "sha256": "149b05c8627ba29ba604af327d215e788c9a7b630383c017e6fdebb1a82a3fb3",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.zh-CN.md",
-      "bytes": 7563,
-      "sha256": "ffc786368b77aefe45bc3e65662655a32f32325bead777b05674aee026d839de",
+      "bytes": 7555,
+      "sha256": "d614bf48f28931c6b486e45c9849db69ad8fb2cdf52e0e1964d054168b2e69a8",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
