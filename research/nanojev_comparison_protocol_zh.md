@@ -97,3 +97,18 @@ python3 scripts/verify_nanojev_comparison.py --public-only --output research/pub
 公开模式的 `complete=true` 仅表示这些公开证据检查通过。它不读取或重新核验私有 started／succeeded 日志，不重选原始 split 的前 20 张地图，不复核训练地图隔离，也不重新运行权重或独立证明远程服务执行。输出的 `verification_scope` 明列这些边界。它与完整来源可用时生成的 `nanojev_comparison_verification.json` 是两种审计范围，不能互相替代。
 
 发布前已在不含任何 `private_*` 目录及 `.env` 的临时副本中实际执行该命令：240 局通过，六份源文件 hash 和全部重算指标与完整审计一致。将临时副本中的一条采样记录改写后，冻结 hash 检查按预期拒绝；原始发布轨迹未改动。
+
+## README 成功案例展示更新
+
+用户随后要求 README 视频展示 NanoJev 与 Jev 均成功、原始 Qwen 失败的真实案例。新版视频因此使用**按结果筛选的成功案例**，不再采用前文最初的视频四例，也不把这组新案例称为事前固定或预登记的 benchmark 子集。上述“test 前两例、OOD 前两例”只记录原先的视频选择方案；当前 README 视频以本节和 [选择记录](nanojev_showcase_selection.json) 为准。
+
+筛选条件是：同一个冻结初局，在 greedy 和 T=1 sample 两种控制器下，都满足 NanoJev 成功、Jev 成功、原始 Qwen 失败。先完整检查 40 张地图，再分别按原 cohort 顺序，取 test 和 OOD 内最先满足条件的两例。test 有 11/20 例符合，OOD 有 6/20 例符合；两种控制器使用下面同四例。表内步数均为原轨迹的实际环境步，`greedy / sample` 分别列出。
+
+| 分区 | episode ID | NanoJev 成功步数 | Jev 成功步数 | 原始 Qwen 失败步数 |
+|---|---|---:|---:|---:|
+| test | `navigation_v3:949e76c0d9a26606cb3373b6` | 2 / 4 | 2 / 4 | 32 / 32 |
+| test | `navigation_v3:450cb63d0bbd444de9ae877c` | 3 / 3 | 3 / 3 | 32 / 32 |
+| OOD | `navigation_v3:06b38a6ade0754de661819ad` | 3 / 3 | 3 / 3 | 72 / 72 |
+| OOD | `navigation_v3:53d0165e341321ab56b81c37` | 3 / 3 | 3 / 3 | 72 / 72 |
+
+此次更新只改变展示案例。完整 40 图、六份源轨迹、全部 240 局成功与失败、模型权重、采样 seed、horizon 和汇总成绩均未修改，也没有新增模型或 API 调用。筛选记录保存六份源文件 SHA、全部符合条件的 ID、选中初局及三系统两控制器的实际结果；CPU 重新检查了 240 局环境转移和成功判定。展示子集的完成率不能替代完整评测。视频仍按环境步同步播放，不作延迟比较。

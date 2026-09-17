@@ -1,79 +1,79 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>NanoJev · 决策实验室</title>
+  <title>NanoJev · Decision Lab</title>
   <link rel="stylesheet" href="./style.css">
   <script src="./app.js" defer></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="NanoJev 首页"><span class="brand-symbol" aria-hidden="true">∷</span> NanoJev <span class="brand-suffix">实验室</span></a>
-      <div class="status-chip" id="dataStatus"><span class="status-dot"></span><span>正在读取实验记录</span></div>
+      <a class="brand" href="./" aria-label="NanoJev home"><span class="brand-symbol" aria-hidden="true">∷</span> NanoJev <span class="brand-suffix">Lab</span></a>
+      <div class="status-chip" id="dataStatus"><span class="status-dot"></span><span>Loading experiment records</span></div>
     </header>
 
     <main>
       <section class="intro" aria-labelledby="pageTitle">
-        <p class="eyebrow">状态 → 问题 → 概率 → 动作</p>
-        <h1 id="pageTitle">一次前向，<span>下一步。</span></h1>
-        <p class="intro-copy">看模型怎样选择、怎样行动，也看它在哪里出错。这里播放保存的真实实验记录；实时接口另行标注。</p>
-        <div class="intro-meta"><span>动态候选</span><span>类型化概率</span><span>无答案文本解码</span></div>
-        <p class="fine-print"><a href="./comparison.html">查看训练后的 NanoJev、Jev API 与原始 Qwen 的三方同例回放 ↗</a></p>
+        <p class="eyebrow">STATE → QUESTION → PROBABILITY → ACTION</p>
+        <h1 id="pageTitle">A nano replica <span>of Jev.</span></h1>
+        <p class="intro-copy">Explore how the model chooses, acts, and sometimes fails. Replay real experiment records or connect to the optional live endpoint.</p>
+        <div class="intro-meta"><span>Dynamic candidates</span><span>Typed probabilities</span><span>No answer-text decoding</span></div>
+        <p class="fine-print"><a href="./comparison.html">Compare NanoJev, Jev, and Untuned Qwen on the same maps ↗</a></p>
       </section>
 
       <div class="notice" id="notice" role="status" hidden></div>
 
-      <section class="experiment-bar" aria-label="实验选择">
-        <label class="select-field"><span>模型 / 基线</span><select id="modelSelect" disabled><option>等待实验数据</option></select></label>
-        <div class="checkpoint"><span class="field-label">CHECKPOINT</span><code id="checkpointHash">尚未载入</code></div>
-        <button class="button secondary small" id="reloadButton" type="button">刷新记录</button>
+      <section class="experiment-bar" aria-label="Experiment selection">
+        <label class="select-field"><span>Model / baseline</span><select id="modelSelect" disabled><option>Waiting for experiment data</option></select></label>
+        <div class="checkpoint"><span class="field-label">CHECKPOINT</span><code id="checkpointHash">Not loaded</code></div>
+        <button class="button secondary small" id="reloadButton" type="button">Reload records</button>
       </section>
 
-      <p id="cohortScope" class="fine-print cohort-scope">载入后显示当前评测集合与执行策略。</p>
-      <section id="summaryCards" class="summary-cards" aria-label="已记录实验摘要"></section>
-      <details class="raw-details"><summary>查看完整模型汇总与评测范围</summary><pre id="rawSummary">尚未载入</pre></details>
+      <p id="cohortScope" class="fine-print cohort-scope">The evaluation cohort and controller appear here after loading.</p>
+      <section id="summaryCards" class="summary-cards" aria-label="Recorded experiment summary"></section>
+      <details class="raw-details"><summary>Full model summary and evaluation scope</summary><pre id="rawSummary">Not loaded</pre></details>
 
-      <nav class="tabs" aria-label="视图">
-        <button type="button" class="tab active" id="tabReplay" data-panel="replayPanel" aria-controls="replayPanel" aria-pressed="true">游戏回放</button>
-        <button type="button" class="tab" id="tabParallel" data-panel="parallelPanel" aria-controls="parallelPanel" aria-pressed="false">并行概率</button>
-        <button type="button" class="tab" id="tabLive" data-panel="livePanel" aria-controls="livePanel" aria-pressed="false">实时接口 <span class="tab-badge">API</span></button>
+      <nav class="tabs" aria-label="Views">
+        <button type="button" class="tab active" id="tabReplay" data-panel="replayPanel" aria-controls="replayPanel" aria-pressed="true">Game replay</button>
+        <button type="button" class="tab" id="tabParallel" data-panel="parallelPanel" aria-controls="parallelPanel" aria-pressed="false">Parallel probabilities</button>
+        <button type="button" class="tab" id="tabLive" data-panel="livePanel" aria-controls="livePanel" aria-pressed="false">Live endpoint <span class="tab-badge">API</span></button>
       </nav>
 
       <section id="replayPanel" class="view-panel" aria-labelledby="tabReplay">
-        <div class="panel-heading"><div><p class="eyebrow">RECORDED EPISODE</p><h2>每一步都有据可查</h2></div><label class="episode-picker"><span class="sr-only">选择对局</span><select id="episodeSelect" disabled><option>尚无对局</option></select></label></div>
+        <div class="panel-heading"><div><p class="eyebrow">RECORDED EPISODE</p><h2>Every step, on record</h2></div><label class="episode-picker"><span class="sr-only">Select an episode</span><select id="episodeSelect" disabled><option>No episodes yet</option></select></label></div>
         <div class="replay-layout">
           <article class="card board-card">
-            <div class="card-top"><span id="gameName">等待游戏记录</span><span class="pill" id="splitLabel">回放</span></div>
-            <div id="gameBoard" class="game-board empty-board"><div class="empty-state"><span class="empty-icon" aria-hidden="true">⌘</span><h3>等待真实实验结果</h3><p>读取 demo_results.json 后，这里会显示模型实际走过的轨迹。</p></div></div>
+            <div class="card-top"><span id="gameName">Waiting for game records</span><span class="pill" id="splitLabel">Replay</span></div>
+            <div id="gameBoard" class="game-board empty-board"><div class="empty-state"><span class="empty-icon" aria-hidden="true">⌘</span><h3>Waiting for experiment results</h3><p>Load demo_results.json to see the actual recorded trajectories.</p></div></div>
             <div class="board-legend" id="boardLegend" hidden></div>
-            <div class="step-caption"><span id="stepLabel">未载入</span><span id="actionLabel">—</span></div>
-            <div class="playback-controls"><button class="button icon-button secondary" id="previousButton" aria-label="上一步" disabled>←</button><button class="button primary" id="playButton" disabled>播放回放</button><button class="button icon-button secondary" id="nextButton" aria-label="下一步" disabled>→</button><label class="speed-picker"><span>速度</span><select id="speedSelect"><option value="1400">慢</option><option value="800" selected>正常</option><option value="350">快</option></select></label></div>
-            <label class="sr-only" for="stepSlider">回放进度</label><input id="stepSlider" class="step-slider" type="range" min="0" max="0" value="0" disabled>
+            <div class="step-caption"><span id="stepLabel">Not loaded</span><span id="actionLabel">—</span></div>
+            <div class="playback-controls"><button class="button icon-button secondary" id="previousButton" aria-label="Previous step" disabled>←</button><button class="button primary" id="playButton" disabled>Play replay</button><button class="button icon-button secondary" id="nextButton" aria-label="Next step" disabled>→</button><label class="speed-picker"><span>Speed</span><select id="speedSelect"><option value="1400">Slow</option><option value="800" selected>Normal</option><option value="350">Fast</option></select></label></div>
+            <label class="sr-only" for="stepSlider">Replay progress</label><input id="stepSlider" class="step-slider" type="range" min="0" max="0" value="0" disabled>
           </article>
 
           <aside class="decision-column">
-            <article class="card probability-card"><div class="card-top"><h3>这一步的动作分布</h3><span class="pill muted" id="distributionType">原始记录</span></div><div id="actionProbabilities" class="probability-list"><p class="muted-copy">选择一段已记录的对局。</p></div><p id="probabilityNote" class="fine-print">动作概率不是最终获胜概率。</p></article>
-            <article class="card compact-card"><div class="card-top"><h3>执行证据</h3></div><dl class="execution-facts" id="executionFacts"><div><dt>记录</dt><dd>等待数据</dd></div></dl></article>
-            <article class="card compact-card"><div class="card-top"><h3>整局结果</h3><span class="pill muted">完整轨迹</span></div><p id="episodeOutcome" class="outcome-text">尚未载入</p><p class="fine-print">保留失败与强制动作标记。规则引擎和随机基线单独列出。</p></article>
+            <article class="card probability-card"><div class="card-top"><h3>Action distribution</h3><span class="pill muted" id="distributionType">Recorded values</span></div><div id="actionProbabilities" class="probability-list"><p class="muted-copy">Select a recorded episode.</p></div><p id="probabilityNote" class="fine-print">Action probabilities are not final win probabilities.</p></article>
+            <article class="card compact-card"><div class="card-top"><h3>Execution record</h3></div><dl class="execution-facts" id="executionFacts"><div><dt>Record</dt><dd>Waiting for data</dd></div></dl></article>
+            <article class="card compact-card"><div class="card-top"><h3>Episode outcome</h3><span class="pill muted">Full trajectory</span></div><p id="episodeOutcome" class="outcome-text">Not loaded</p><p class="fine-print">Failures and forced actions remain visible. Solver and random baselines are listed separately.</p></article>
           </aside>
         </div>
-        <details class="raw-details"><summary>查看当前步骤原始 JSON</summary><pre id="rawStep">尚未载入</pre></details>
+        <details class="raw-details"><summary>Current step: raw JSON</summary><pre id="rawStep">Not loaded</pre></details>
       </section>
 
       <section id="parallelPanel" class="view-panel" aria-labelledby="tabParallel" hidden>
-        <div class="panel-heading"><div><p class="eyebrow">TYPED PROBABILITIES</p><h2>同批状态，独立问题</h2></div><label class="episode-picker"><span class="sr-only">选择批次</span><select id="batchSelect" disabled><option>尚无批次</option></select></label></div>
-        <div class="notice subtle" id="batchEvidence">只有记录包含批次和执行证据时，才显示为多状态同批。</div>
+        <div class="panel-heading"><div><p class="eyebrow">TYPED PROBABILITIES</p><h2>Batched states, independent questions</h2></div><label class="episode-picker"><span class="sr-only">Select a batch</span><select id="batchSelect" disabled><option>No batches yet</option></select></label></div>
+        <div class="notice subtle" id="batchEvidence">Multi-state batching is shown only when supported by the saved execution record.</div>
         <div id="parallelStates" class="parallel-grid"></div>
-        <details class="raw-details"><summary>查看批次原始 JSON</summary><pre id="rawBatch">尚未载入</pre></details>
+        <details class="raw-details"><summary>Batch: raw JSON</summary><pre id="rawBatch">Not loaded</pre></details>
       </section>
 
       <section id="livePanel" class="view-panel" aria-labelledby="tabLive" hidden>
-        <div class="panel-heading"><div><p class="eyebrow">OPTIONAL LIVE ENDPOINT</p><h2>把自己的状态交给模型</h2></div><span class="pill">POST /api/evaluate</span></div>
+        <div class="panel-heading"><div><p class="eyebrow">OPTIONAL LIVE ENDPOINT</p><h2>Try your own state</h2></div><span class="pill">POST /api/evaluate</span></div>
         <div class="live-layout">
-          <form id="liveForm" class="card live-form"><label for="liveInput">请求 JSON</label><p class="fine-print">发送到当前站点的模型推理服务。静态页面不包含 API 密钥，也不会调用付费模型。</p><textarea id="liveInput" spellcheck="false" rows="18" aria-describedby="liveHelp">{
+          <form id="liveForm" class="card live-form"><label for="liveInput">Request JSON</label><p class="fine-print">Send a request to this site’s model service. The static page contains no API keys and makes no paid model calls.</p><textarea id="liveInput" spellcheck="false" rows="18" aria-describedby="liveHelp">{
   "states": [
     {
       "id": "my_state",
@@ -86,14 +86,14 @@
       }
     }
   ]
-}</textarea><p id="liveHelp" class="fine-print">这是待发送的输入示例，不是推理结果。协议以运行中的服务为准。</p><button class="button primary" id="evaluateButton" type="submit">运行一次推理</button><p id="liveStatus" class="live-status" role="status">需要先启动支持 /api/evaluate 的本地模型服务。</p></form>
-          <article class="card live-result"><div class="card-top"><h3>实际响应</h3><span class="pill muted" id="liveLatency">未调用</span></div><div id="liveAnswers" class="live-answers"><p class="muted-copy">响应会显示在这里，不使用预设答案。</p></div><details class="raw-details"><summary>响应 JSON</summary><pre id="liveRaw">尚未调用</pre></details></article>
+}</textarea><p id="liveHelp" class="fine-print">This is an input example, not a model result. The running service defines the request protocol.</p><button class="button primary" id="evaluateButton" type="submit">Run inference</button><p id="liveStatus" class="live-status" role="status">Start a local model service with /api/evaluate support first.</p></form>
+          <article class="card live-result"><div class="card-top"><h3>Actual response</h3><span class="pill muted" id="liveLatency">Not called</span></div><div id="liveAnswers" class="live-answers"><p class="muted-copy">The actual response will appear here.</p></div><details class="raw-details"><summary>Response JSON</summary><pre id="liveRaw">Not called</pre></details></article>
         </div>
       </section>
 
-      <section class="sources-section" aria-labelledby="sourcesTitle"><div><p class="eyebrow">ORIGINS & SCOPE</p><h2 id="sourcesTitle">灵感有来源，能力看实测。</h2><p>自写网格和井字棋受到 Jev 结构化游戏状态演示的启发，并非官方 Doom 同款，也不代表复现了专有 RLCD。游戏动作策略与事件概率分别评测。</p></div><div id="sourceLinks" class="source-links"></div></section>
+      <section class="sources-section" aria-labelledby="sourcesTitle"><div><p class="eyebrow">ORIGINS & SCOPE</p><h2 id="sourcesTitle">Inspired by Jev. Measured in action.</h2><p>These original grid and tic-tac-toe environments were inspired by Jev’s structured game-state demos. They are separate from the official Doom demo and the proprietary RLCD implementation. Action policies and event probabilities are evaluated separately.</p></div><div id="sourceLinks" class="source-links"></div></section>
     </main>
-    <footer><span>NanoJev · 开放决策模型实验</span><span id="artifactMeta">等待本地结果文件</span></footer>
+    <footer><span>NanoJev · Open decision-model experiments</span><span id="artifactMeta">Waiting for the local results file</span></footer>
   </div>
 </body>
 </html>

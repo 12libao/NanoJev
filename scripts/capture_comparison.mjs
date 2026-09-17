@@ -15,13 +15,13 @@ const browser=await chromium.launch({executablePath:args.chrome,headless:true,ar
 const report={browser_version:browser.version(),page_errors:[],policies:{},network_model_calls:0};
 try{const page=await browser.newPage({viewport:{width:1600,height:1080},deviceScaleFactor:1});page.on('pageerror',e=>report.page_errors.push(e.message));await page.goto(`http://127.0.0.1:${server.address().port}`,{waitUntil:'networkidle'});await page.waitForFunction(()=>window.nanojevComparison?.ready||window.nanojevComparison?.error);
  assert.equal(await page.evaluate(()=>window.nanojevComparison.error),undefined);await page.evaluate(()=>document.fonts.ready);
- assert.deepEqual(await page.locator('.system-name').allTextContents(),['训练后的 NanoJev','Jev API','原始 Qwen']);
+ assert.deepEqual(await page.locator('.system-name').allTextContents(),['NanoJev','Jev','Untuned Qwen']);
  const stage=page.locator('#comparisonStage');assert.deepEqual(await stage.evaluate(e=>({width:e.offsetWidth,height:e.offsetHeight})),{width:1600,height:1000});
  for(const policy of data.policies){const folder=path.join(out,policy);await fs.mkdir(folder,{recursive:true});const frames=[];let sequence=0;
   for(let ci=0;ci<data.cases.length;ci++){const max=await page.evaluate(([p,c])=>window.nanojevComparison.duration(p,c),[policy,ci]);
    for(let si=0;si<=max;si++){const snapshot=await page.evaluate(([p,c,s])=>window.nanojevComparison.setFrame(p,c,s),[policy,ci,si]);
     assert.equal(snapshot.step_index,si);for(const panel of snapshot.panels){const model=data.models.find(m=>m.policy===policy&&m.role===panel.role),ep=model.episodes.find(e=>e.id===data.cases[ci].id),idx=Math.min(si,ep.steps.length),expected=ep.steps[idx]?.state??ep.final_state??ep.steps.at(-1)?.next_state??ep.initial_state;assert.deepEqual(panel.environment,expected);assert.equal(panel.action,ep.steps[idx]?.action??null);assert.equal(panel.finished,idx===ep.steps.length);}
-    if(si===max)assert.ok(snapshot.panels.every(p=>p.finished),'all final states must be frozen at final frame');
+    if(si===max){assert.ok(snapshot.panels.every(p=>p.finished),'all final states must be frozen at final frame');assert.deepEqual(await page.locator('.status').allTextContents(),['Goal reached','Goal reached','Step limit reached']);assert.deepEqual(await page.locator('.final-message').allTextContents(),['✓ Goal reached','✓ Goal reached','× Step limit reached']);}
     const name=`frame_${String(sequence++).padStart(5,'0')}.png`;await stage.screenshot({path:path.join(folder,name)});frames.push({file:name,case_index:ci,case_id:data.cases[ci].id,environment_step:si,duration_seconds:si===0?1.25:si===max?1.8:stepDuration,all_finished:si===max});
    }
   }

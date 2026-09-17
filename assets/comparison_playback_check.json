@@ -1,5 +1,5 @@
 {
-  "scope": "实际三方交互回放与导出H.264文件的浏览器播放检查",
+  "scope": "English outcome-selected showcase: real browser interaction, final outcomes, exported MP4 playback",
   "page_errors": [],
   "media": {
     "greedy": {
@@ -7,302 +7,268 @@
       "width": 1600,
       "height": 1000,
       "final_seek": 63.266667,
-      "ready_state": 4
+      "ready_state": 4,
+      "gif_browser": {
+        "width": 800,
+        "height": 500
+      }
     },
     "sample": {
       "duration": 63.416667,
       "width": 1600,
       "height": 1000,
       "final_seek": 63.266667,
-      "ready_state": 4
+      "ready_state": 4,
+      "gif_browser": {
+        "width": 800,
+        "height": 500
+      }
     }
   },
+  "selected_final_outcomes": [
+    {
+      "policy": "greedy",
+      "case_id": "navigation_v3:949e76c0d9a26606cb3373b6",
+      "environment_step": 32,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 2,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 2,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 32,
+          "goal_reached": false
+        }
+      ]
+    },
+    {
+      "policy": "greedy",
+      "case_id": "navigation_v3:450cb63d0bbd444de9ae877c",
+      "environment_step": 32,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 32,
+          "goal_reached": false
+        }
+      ]
+    },
+    {
+      "policy": "greedy",
+      "case_id": "navigation_v3:06b38a6ade0754de661819ad",
+      "environment_step": 72,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 72,
+          "goal_reached": false
+        }
+      ]
+    },
+    {
+      "policy": "greedy",
+      "case_id": "navigation_v3:53d0165e341321ab56b81c37",
+      "environment_step": 72,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 72,
+          "goal_reached": false
+        }
+      ]
+    },
+    {
+      "policy": "sample",
+      "case_id": "navigation_v3:949e76c0d9a26606cb3373b6",
+      "environment_step": 32,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 4,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 4,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 32,
+          "goal_reached": false
+        }
+      ]
+    },
+    {
+      "policy": "sample",
+      "case_id": "navigation_v3:450cb63d0bbd444de9ae877c",
+      "environment_step": 32,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 32,
+          "goal_reached": false
+        }
+      ]
+    },
+    {
+      "policy": "sample",
+      "case_id": "navigation_v3:06b38a6ade0754de661819ad",
+      "environment_step": 72,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 72,
+          "goal_reached": false
+        }
+      ]
+    },
+    {
+      "policy": "sample",
+      "case_id": "navigation_v3:53d0165e341321ab56b81c37",
+      "environment_step": 72,
+      "panels": [
+        {
+          "role": "trained",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "jev",
+          "steps": 3,
+          "goal_reached": true
+        },
+        {
+          "role": "base",
+          "steps": 72,
+          "goal_reached": false
+        }
+      ]
+    }
+  ],
   "api_calls": 0,
+  "gpu_calls": 0,
   "actual_controls_passed": true,
   "finished_panels_stay_frozen": true,
-  "final_snapshot": {
-    "policy": "sample",
-    "case_index": 3,
-    "case_id": "navigation_v3:e3d96e8974464786ca16801a",
-    "step_index": 72,
-    "panels": [
-      {
-        "role": "trained",
-        "step_index": 8,
-        "finished": true,
-        "environment": {
-          "game": "grid_navigation",
-          "size": 6,
-          "walls": [
-            [
-              0,
-              0
-            ],
-            [
-              0,
-              4
-            ],
-            [
-              1,
-              1
-            ],
-            [
-              1,
-              2
-            ],
-            [
-              1,
-              4
-            ],
-            [
-              3,
-              2
-            ],
-            [
-              3,
-              4
-            ],
-            [
-              4,
-              0
-            ],
-            [
-              4,
-              1
-            ],
-            [
-              4,
-              4
-            ],
-            [
-              5,
-              2
-            ],
-            [
-              5,
-              3
-            ]
-          ],
-          "position": [
-            0,
-            1
-          ],
-          "goal": [
-            0,
-            1
-          ]
-        },
-        "action": null
-      },
-      {
-        "role": "jev",
-        "step_index": 8,
-        "finished": true,
-        "environment": {
-          "game": "grid_navigation",
-          "size": 6,
-          "walls": [
-            [
-              0,
-              0
-            ],
-            [
-              0,
-              4
-            ],
-            [
-              1,
-              1
-            ],
-            [
-              1,
-              2
-            ],
-            [
-              1,
-              4
-            ],
-            [
-              3,
-              2
-            ],
-            [
-              3,
-              4
-            ],
-            [
-              4,
-              0
-            ],
-            [
-              4,
-              1
-            ],
-            [
-              4,
-              4
-            ],
-            [
-              5,
-              2
-            ],
-            [
-              5,
-              3
-            ]
-          ],
-          "position": [
-            0,
-            1
-          ],
-          "goal": [
-            0,
-            1
-          ]
-        },
-        "action": null
-      },
-      {
-        "role": "base",
-        "step_index": 72,
-        "finished": true,
-        "environment": {
-          "game": "grid_navigation",
-          "size": 6,
-          "walls": [
-            [
-              0,
-              0
-            ],
-            [
-              0,
-              4
-            ],
-            [
-              1,
-              1
-            ],
-            [
-              1,
-              2
-            ],
-            [
-              1,
-              4
-            ],
-            [
-              3,
-              2
-            ],
-            [
-              3,
-              4
-            ],
-            [
-              4,
-              0
-            ],
-            [
-              4,
-              1
-            ],
-            [
-              4,
-              4
-            ],
-            [
-              5,
-              2
-            ],
-            [
-              5,
-              3
-            ]
-          ],
-          "position": [
-            0,
-            5
-          ],
-          "goal": [
-            0,
-            1
-          ]
-        },
-        "action": null
-      }
-    ]
-  },
+  "visible_interface_language": "English",
   "passed": true,
   "browser_version": "153.0.8010.48",
-  "encoded_final_frames_also_extracted_and_visually_checked": true,
-  "visual_review": {
-    "display_names": [
-      "训练后的 NanoJev",
-      "Jev API",
-      "原始 Qwen"
-    ],
-    "headers_fit": true,
-    "greedy_final_case_all_horizon_failures_preserved": true,
-    "sample_final_case_trained_and_jev_8_steps_base_72_step_failure_preserved": true
-  },
-  "copy_revision_invariants": {
-    "passed": true,
-    "fixed_cases_unchanged": true,
-    "all_24_selected_episodes_unchanged": true,
-    "all_candidate_probabilities_unchanged": true,
-    "all_checkpoint_hashes_unchanged": true,
-    "all_source_hashes_match": true,
-    "new_sources": [
-      {
-        "role": "trained",
-        "policy": "greedy",
-        "artifact": "navigation_v3_v3_teacher_coords_multi_seed17_greedy.json",
-        "sha256": "f10506e3e18ac56dbe681ff5e6a27637a55e8f527a949418b0755743527a80af"
-      },
-      {
-        "role": "trained",
-        "policy": "sample",
-        "artifact": "navigation_v3_v3_teacher_coords_multi_seed17_sample.json",
-        "sha256": "cc58e8f2319e9d48a8393b7b2abb369ef2f830d136fd84c04ad273e541abb9d7"
-      },
-      {
-        "role": "jev",
-        "policy": "greedy",
-        "artifact": "navigation_v3_jev_api_greedy.json",
-        "sha256": "f59ec9684cd0af9e2f00724cf12b121c54cf6297efee34bbe3d740def50e60ca"
-      },
-      {
-        "role": "jev",
-        "policy": "sample",
-        "artifact": "navigation_v3_jev_api_sample.json",
-        "sha256": "49f69a9b2d06c102bef18e027a04ba7587d8dc403ba03f210d0e303fe2055bcc"
-      },
-      {
-        "role": "base",
-        "policy": "greedy",
-        "artifact": "navigation_v3_native_qwen_greedy.json",
-        "sha256": "b584be6448cf8304055a14a697e0783226293b858f0e035fc9d936dd0b7d401c"
-      },
-      {
-        "role": "base",
-        "policy": "sample",
-        "artifact": "navigation_v3_native_qwen_sample.json",
-        "sha256": "daa05d2781b860c51aff2ff36cafc53aa2be1e9866fb0833e2ff694c11314314"
-      }
-    ]
+  "authenticated_profile_used": false,
+  "source_snapshot_check": {
+    "source_files_unchanged": true,
+    "selected_24_episodes_match_original_fields": true,
+    "all_recorded_steps_and_action_probabilities_retained": true,
+    "expected_outcomes_verified": true,
+    "selection_sha256": "b47089d694b753274d1b6b8fdc4b9d8fb0930acc5b75d52532ee58104d2064c5"
   },
   "gif_check": {
     "greedy": {
       "width": 800,
       "height": 500,
-      "frames": 48,
-      "duration_ms": 12000
+      "frames": 101,
+      "duration_ms": 12630,
+      "last_frame_duration_ms": 130
     },
     "sample": {
       "width": 800,
       "height": 500,
-      "frames": 48,
-      "duration_ms": 12000
+      "frames": 101,
+      "duration_ms": 12630,
+      "last_frame_duration_ms": 130
     }
+  },
+  "visual_review": {
+    "posters_and_encoded_mp4_final_frames_checked": true,
+    "both_encoded_gif_final_frames_checked": true,
+    "selected_success_and_baseline_step_limit_visible": true,
+    "all_visible_product_copy_English": true
+  },
+  "main_viewer_check": {
+    "scope": "English main experiment viewer; saved records only",
+    "page_errors": [],
+    "model_labels": [
+      "V3 · NanoJev · coordinates · multiple starts · variant A · Greedy · argmax",
+      "V3 · NanoJev · coordinates · multiple starts · variant A · Sample · T=1",
+      "V3 · NanoJev · coordinates · multiple starts · variant B · Greedy · argmax",
+      "V3 · NanoJev · coordinates · multiple starts · variant B · Sample · T=1",
+      "V3 · NanoJev · ASCII · single start · variant A · Greedy · argmax",
+      "V3 · NanoJev · ASCII · single start · variant A · Sample · T=1",
+      "V3 · NanoJev · ASCII · multiple starts · variant A · Greedy · argmax",
+      "V3 · NanoJev · ASCII · multiple starts · variant A · Sample · T=1",
+      "V3 · NanoJev · coordinates · single start · variant A · Greedy · argmax",
+      "V3 · NanoJev · coordinates · single start · variant A · Sample · T=1",
+      "V3 · Uniform random · Uniform random",
+      "V3 · Oracle upper bound · Oracle upper bound",
+      "V2 · NanoJev · variant B · Recorded policy",
+      "V2 · NanoJev · variant A · Recorded policy",
+      "V2 · Uniform random · Uniform random",
+      "V2 · Oracle upper bound · Oracle upper bound"
+    ],
+    "api_calls": 0,
+    "narrow_viewport_no_overflow": true,
+    "actual_step_controls_passed": true,
+    "passed": true,
+    "browser_version": "153.0.8010.48"
+  },
+  "main_viewer_source_sha256": {
+    "web/index.html": "489d1a05379238a6e179f1c975020dd36db7d13eaf0d8c5c36709f03e33657b6",
+    "web/app.js": "92c769251bf401870ec304580d8b1c67f7355fcb74a8a81ddc7424e543c04e49"
   }
 }

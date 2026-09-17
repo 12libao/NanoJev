@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "并行决策模型原型：数据、训练、评测与真实三方可视化",
+  "description": "A nano replica of Jev: parallel decisions, dynamic candidates, training, and benchmarks.",
   "scripts": {
     "demo": "node --env-file=.env scripts/jev_probe.mjs",
     "teacher-demo": "node --env-file=.env scripts/teacher_demo.mjs",

@@ -22,7 +22,7 @@ import zipfile
 
 
 REQUIRED = (
-    "README.md", "README.en.md", "LICENSE", "package.json", "package-lock.json", "requirements-toy.txt",
+    "README.md", "README.en.md", "README.zh-CN.md", "LICENSE", "package.json", "package-lock.json", "requirements-toy.txt",
     "scripts/package_source.py", "research/release_scope_zh.md",
     "web/README.md", "web/index.html", "web/app.js", "web/style.css", "web/demo_results.json",
 )
@@ -42,6 +42,7 @@ PUBLIC_REPORTS = (
     "research/pipeline_v2_report_zh.md", "research/pipeline_rollout_audit_zh.md",
     "research/web_reader_review_zh.md", "research/navigation_v3_source_audit_zh.md",
     "research/pipeline_runbook_zh.md",
+    "research/pipeline_runbook.md",
     "research/navigation_v3_protocol_zh.md",
     "research/navigation_v3_regression_zh.md",
 )
@@ -92,6 +93,7 @@ FINAL_V3_RESULTS: tuple[str, ...] = (
 # historical training labels or the private provider/credential envelope.
 NANOJEV_COMPARISON = (
     "research/nanojev_comparison_protocol_zh.md",
+    "research/nanojev_showcase_selection.json", "research/nanojev_showcase.md",
     "research/nanojev_comparison_zh.md",
     "research/nanojev_comparison_cohort.json",
     "research/nanojev_comparison_api_receipts.jsonl",
@@ -123,6 +125,7 @@ SECRET_PATTERNS = tuple(re.compile(pattern) for pattern in (
     rb"\bAKIA[A-Z0-9]{16}\b",
     rb"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}\b",
     rb"\bgithub_pat_[A-Za-z0-9_]{30,}\b",
+    rb"\bhf_[A-Za-z0-9]{20,}\b",
     rb"\bsk-[A-Za-z0-9_-]{20,}\b",
     rb"\bAIza[A-Za-z0-9_-]{30,}\b",
     rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",

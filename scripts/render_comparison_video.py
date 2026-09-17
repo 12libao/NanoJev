@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render real fixed-cohort three-system trajectories to an HTML reader, MP4 and GIF.
+"""Render selected real three-system success cases to an HTML reader, MP4 and GIF.
 
 No API/GPU calls. Supply actual trained/Jev/native artifacts explicitly. Chrome,
 Playwright and FFmpeg must already be installed; output files are never replaced.
@@ -16,10 +16,10 @@ import tempfile
 from game_tasks import step as environment_step, valid_actions
 
 FIXED_CASES = (
-    ('test', 'navigation_v3:c53720549630bd7dcd3f803c'),
     ('test', 'navigation_v3:949e76c0d9a26606cb3373b6'),
+    ('test', 'navigation_v3:450cb63d0bbd444de9ae877c'),
     ('ood', 'navigation_v3:06b38a6ade0754de661819ad'),
-    ('ood', 'navigation_v3:e3d96e8974464786ca16801a'),
+    ('ood', 'navigation_v3:53d0165e341321ab56b81c37'),
 )
 ROLES = ('trained', 'jev', 'base')
 
@@ -88,18 +88,23 @@ def assemble(paths):
             for split, identity in FIXED_CASES:
                 episode = by_id[identity]
                 if episode['split'] != split:
-                    raise ValueError('Fixed case split changed')
+                    raise ValueError('Selected case split changed')
                 validate_episode(episode)
+                if episode.get('success') is not (role != 'base'):
+                    raise ValueError(f'{role}/{policy}: selected case has the wrong actual outcome')
+                if role == 'base' and (episode.get('outcome') != 'horizon_exhausted'
+                                      or len(episode['steps']) != episode['max_steps']):
+                    raise ValueError('The complete unsuccessful baseline horizon must be preserved')
                 if identity in reference and reference[identity] != episode['initial_state']:
                     raise ValueError('Systems do not share the same initial map/state')
                 reference[identity] = episode['initial_state']
                 selected.append(reader_episode(episode))
             if role == 'trained' and 'v3_teacher_coords_multi_seed17' not in (str(filename) + json.dumps(record.get('checkpoint', {}))):
-                raise ValueError('Training arm must be the preregistered v3_teacher_coords_multi_seed17')
-            details = {'trained': 'Qwen3-0.6B · 已训练的决策模型',
-                       'jev': 'TypeSafe Jev · 本次真实 API 调用',
-                       'base': '原始 Qwen3-0.6B · A–D 答案标签条件分布'}
-            names = {'trained': '训练后的 NanoJev', 'jev': 'Jev API', 'base': '原始 Qwen'}
+                raise ValueError('Training arm must use the fixed v3_teacher_coords_multi_seed17 checkpoint')
+            details = {'trained': '0.6B parallel decision model',
+                       'jev': 'TypeSafe Jev · recorded API decisions',
+                       'base': 'Qwen3-0.6B · no task fine-tuning'}
+            names = {'trained': 'NanoJev', 'jev': 'Jev', 'base': 'Untuned Qwen'}
             models.append({'role': role, 'name': names[role], 'display_detail': details[role],
                            'policy': policy, 'checkpoint_sha256': record.get('checkpoint_sha256'),
                            'source_artifact': Path(filename).name, 'source_sha256': source_sha, 'episodes': selected})
@@ -113,8 +118,9 @@ def assemble(paths):
              for i, (split, identity) in enumerate(FIXED_CASES)]
     return {'schema_version': 'nanojev-three-system-reader-v1', 'policies': policies, 'cases': cases,
             'models': models, 'sources': sources,
-            'protocol': {'fixed_cases': 'Original V3 first2 test and first2 OOD, selected before three-way results',
-                         'synchronization': 'environment step, not wall-clock latency race',
+            'protocol': {'selected_cases': 'Outcome-selected showcase: trained and Jev succeed, original Qwen fails in both policies; first two qualifying test and OOD maps in the frozen cohort order',
+                         'expected_success': {'trained': True, 'jev': True, 'base': False},
+                         'synchronization': 'environment step',
                          'trained_checkpoint': 'v3_teacher_coords_multi_seed17',
                          'baseline_distribution': 'Frozen original Qwen answer-label conditional probabilities; no project tuning',
                          'terminal_panels': 'Hold actual final state while other trajectories continue',
@@ -139,11 +145,10 @@ def main():
     p.add_argument('--playwright-module', help='Optional installed playwright/index.mjs absolute path')
     p.add_argument('--ffmpeg', default=shutil.which('ffmpeg'))
     p.add_argument('--steps-per-second', type=float, default=4)
-    p.add_argument('--gif-seconds', type=float, default=12)
     p.add_argument('--assemble-only', action='store_true', help='Validate and save real reader data, without Chrome/encoding')
     args = p.parse_args()
-    if not 0 < args.steps_per_second <= 12 or not 0 < args.gif_seconds <= 30:
-        p.error('Invalid playback rate or GIF duration')
+    if not 0 < args.steps_per_second <= 12:
+        p.error('Invalid playback rate')
     if args.data_output.exists():
         p.error('Data output already exists; use a new path')
     if not args.assemble_only and (not args.ffmpeg or not Path(args.ffmpeg).is_file()):
@@ -169,8 +174,9 @@ def main():
         audit = json.loads((temp / 'capture_check.json').read_text())
         manifest = {'schema_version': 'nanojev-three-system-media-v1', 'reader_data_sha256': sha(args.data_output),
                     'sources': data['sources'], 'capture': audit, 'media': {}, 'api_calls': 0, 'gpu_calls': 0,
-                    'encoding': 'FFmpeg H.264/yuv420p; environment-step timing, not inference-latency timing',
-                    'gif_scope': f'First {args.gif_seconds:g} seconds of each full fixed-order video, not best outcomes',
+                    'encoding': 'FFmpeg H.264/yuv420p; environment-step timing',
+                    'gif_scope': 'Complete first selected case, including the full unsuccessful baseline horizon and final outcomes; 8 fps',
+                    'poster_scope': 'Actual final frame of the first selected case',
                     'render_source_sha256': {str(path): sha(path) for path in [Path(__file__), Path(__file__).with_name('capture_comparison.mjs'), args.web_root/'comparison.html', args.web_root/'comparison.js', args.web_root/'comparison.css']}}
         for policy, captured in audit['policies'].items():
             folder = temp / policy
@@ -183,13 +189,23 @@ def main():
             video, gif, poster = [args.output_dir / f'comparison_{policy}.{suffix}' for suffix in ('mp4','gif','png')]
             run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-n', '-f', 'concat', '-safe', '0', '-i', str(concat),
                  '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p', '-r', '12', '-movflags', '+faststart', str(video)])
-            run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-n', '-i', str(video), '-t', str(args.gif_seconds),
-                 '-filter_complex', 'fps=4,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96[p];[b][p]paletteuse=dither=bayer:bayer_scale=4', str(gif)])
-            shutil.copyfile(folder / captured['frames'][0]['file'], poster)
+            first_case = [frame for frame in captured['frames'] if frame['case_index'] == 0]
+            gif_concat = folder / 'first_case.txt'
+            gif_lines = []
+            for frame in first_case:
+                gif_lines.extend([f"file '{frame['file']}'", f"duration {frame['duration_seconds']:.6f}"])
+            gif_lines.append(f"file '{first_case[-1]['file']}'")
+            gif_concat.write_text('\n'.join(gif_lines)+'\n')
+            run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-n', '-f', 'concat', '-safe', '0', '-i', str(gif_concat),
+                 '-filter_complex', 'fps=8,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96[p];[b][p]paletteuse=dither=bayer:bayer_scale=4', str(gif)])
+            shutil.copyfile(folder / first_case[-1]['file'], poster)
             # Decode the actual exported MP4 all the way through, including its final frame.
             run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-i', str(video), '-f', 'null', '-'])
             manifest['media'][policy] = {suffix: {'path': str(path), 'bytes': path.stat().st_size, 'sha256': sha(path)} for suffix, path in [('mp4',video),('gif',gif),('poster',poster)]}
             manifest['media'][policy].update(frame_count=captured['frame_count'], timeline_seconds=captured['duration_seconds'], final_frame_verified=True)
+            manifest['media'][policy]['gif_case'] = {'id': first_case[0]['case_id'],
+                'environment_steps': first_case[-1]['environment_step'], 'captured_frames': len(first_case),
+                'timeline_seconds': sum(frame['duration_seconds'] for frame in first_case), 'includes_actual_final_outcomes': True}
         json_write_new(audit_path, manifest)
         print(json.dumps({'manifest':str(audit_path),'media':manifest['media'],'real_frames_verified':True,'api_calls':0},ensure_ascii=False))
 

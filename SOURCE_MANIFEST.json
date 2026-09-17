@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "created_at_utc": "2026-09-17T16:20:43.235494+00:00",
+  "created_at_utc": "2026-09-17T16:51:25.144073+00:00",
   "operation": "local_curated_repository_staging_no_network",
-  "file_count": 164,
-  "total_bytes": 158391230,
+  "file_count": 168,
+  "total_bytes": 157077957,
   "files": [
     {
       "path": ".env.example",
@@ -31,80 +31,88 @@
     },
     {
       "path": "README.en.md",
-      "bytes": 12748,
-      "sha256": "1f70107d687bcdcf91acc1e8a089481b21b7ea7857223cd9cc38cd3f2a856363",
+      "bytes": 5962,
+      "sha256": "9e6cc666f2bbdfa539547c4dc74199be8b08fc5a38c307310d36570eef013baa",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.md",
-      "bytes": 10288,
-      "sha256": "54904bac4890be5a2fd6697d5e8b8735393dd663bbd3cc58b8c694d2b27f2256",
+      "bytes": 5962,
+      "sha256": "9e6cc666f2bbdfa539547c4dc74199be8b08fc5a38c307310d36570eef013baa",
+      "category": "authored_documentation",
+      "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
+      "license_scope": "MIT for authored text; third-party material retains its rights"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "bytes": 5185,
+      "sha256": "8938de33ab876a70d5a557fab40f4ee46a8249dd923ce4f7ebf588597f78ccdf",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "assets/comparison_greedy.gif",
-      "bytes": 413693,
-      "sha256": "62cfe68838325ddab5e914d919633d587695b4aff9ae7171cadde121c36239a9",
+      "bytes": 195623,
+      "sha256": "efe9da086c69705dd141a6698c35a49399c3c99f316a476052317df638f9274f",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "assets/comparison_greedy.mp4",
-      "bytes": 687666,
-      "sha256": "8b044203a36a54be717414b37fcb232cb3ad3515ba23134466cc55802ab12b44",
+      "bytes": 673481,
+      "sha256": "32fc2a57ec35599fba342400fede1b873d55dee77ce93c1c30b36687dc49c1ac",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "assets/comparison_greedy.png",
-      "bytes": 234922,
-      "sha256": "7f9f7a87129806436544a016f4a7c8f84aee6f27b82aafbfd458a9a7afe1a1b4",
+      "bytes": 212097,
+      "sha256": "98740b946b0d22c21c6f667715b3fceebee5e48caf19921ef20bfae3748ec091",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "assets/comparison_media_manifest.json",
-      "bytes": 116712,
-      "sha256": "d8f7d9e7cd594a976a9d830a8176513dc20b5cd4279fe7e28ef9aea68d41d7ae",
+      "bytes": 117847,
+      "sha256": "ca3efd3e3314b4428c2748e44db3afc7f5a8340825432604137ddcf77f72e939",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "assets/comparison_playback_check.json",
-      "bytes": 6312,
-      "sha256": "50881f1bbb72f78e916fbfffcb0bd9514402b0ffe017d7d8449c76def71e798f",
+      "bytes": 7115,
+      "sha256": "105fcb433632becbc6c49572394b36b81afbd80da75cf32c0dacde21d54b2b5a",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "assets/comparison_sample.gif",
-      "bytes": 455217,
-      "sha256": "eab8d8ef741c391619bf765cdb3117c9780cea04bd957efab977a71057d2509c",
+      "bytes": 214271,
+      "sha256": "b00bcdbc667629a1e22d79f7c3e700d1b5ce0143d516316e6aa94b623af875be",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "assets/comparison_sample.mp4",
-      "bytes": 756997,
-      "sha256": "13202b92683cbbd8865e47a033f1097055bf2ac3d2e5017c30d3874410fd5c6c",
+      "bytes": 718029,
+      "sha256": "5e58440260f0e6edb88252efff283ddc61dcb6d1bcd4b588a1a92a3ff39f6cf1",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "assets/comparison_sample.png",
-      "bytes": 234592,
-      "sha256": "458140c6bd91970de8730358d31db2acf5d3f04ea180aa5a503711feded7706d",
+      "bytes": 211004,
+      "sha256": "c3435a9fe3e2fa1ba72648c57824f5a7d25329de194f8a27be858ac79638e91a",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
@@ -119,8 +127,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 625,
-      "sha256": "97ef02ed2bdfa6c92e369365861688b1f14a8a4994e1fa921ea7e861510c5ef4",
+      "bytes": 638,
+      "sha256": "2e9c793d40374916b828bc1a6e5f4ff7c4efcb13c01de445647d43f9c870c3cc",
       "category": "dependency_specification",
       "provenance": "项目依赖声明/锁定信息；不包含第三方依赖实现",
       "license_scope": "MIT; dependencies retain their own licenses"
@@ -279,8 +287,8 @@
     },
     {
       "path": "research/nanojev_comparison_protocol_zh.md",
-      "bytes": 10902,
-      "sha256": "a334d5f98eb2ca6b5be4383a769702ad1629596955fcc9c8d9fba49a4e6052be",
+      "bytes": 12755,
+      "sha256": "65feff2181744aac96386a99ecdb845c29b58d4697c959c79ec6966241c370cb",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
@@ -308,6 +316,22 @@
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
+    },
+    {
+      "path": "research/nanojev_showcase.md",
+      "bytes": 1864,
+      "sha256": "1872437a82f8247da4f1b4013e1fadd674c5f1243b50bd89a0138c3d48910fd0",
+      "category": "authored_documentation",
+      "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
+      "license_scope": "MIT for authored text; third-party material retains its rights"
+    },
+    {
+      "path": "research/nanojev_showcase_selection.json",
+      "bytes": 28959,
+      "sha256": "b47089d694b753274d1b6b8fdc4b9d8fb0930acc5b75d52532ee58104d2064c5",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
     },
     {
       "path": "research/navigation_failure_fable_zh.md",
@@ -577,6 +601,14 @@
       "path": "research/pipeline_rollout_audit_zh.md",
       "bytes": 8065,
       "sha256": "a58c8a0f45a79fa856088ca5ac715f504a280cf08cb6955535ac0f6b3e92e5f6",
+      "category": "authored_documentation",
+      "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
+      "license_scope": "MIT for authored text; third-party material retains its rights"
+    },
+    {
+      "path": "research/pipeline_runbook.md",
+      "bytes": 18266,
+      "sha256": "e2c9561ca3db0e68555ea1db78a6a2153aa3496d476feb46113b8ae264229a2b",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
@@ -935,8 +967,8 @@
     },
     {
       "path": "scripts/capture_comparison.mjs",
-      "bytes": 4405,
-      "sha256": "09f2f02614decd1f1f49cc8e43e2f8a1ed4a7c00717303b995416cfd00b0fce7",
+      "bytes": 4647,
+      "sha256": "6ed8fa27d67c691c5a319c055455082c9bbae75a59003e02eccb7a60209f56bb",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
@@ -1111,8 +1143,8 @@
     },
     {
       "path": "scripts/package_source.py",
-      "bytes": 23988,
-      "sha256": "28334a23f23ba1060b00de634ff44beaaa6c78ccab28597f4a042e6281e35978",
+      "bytes": 24156,
+      "sha256": "c79de30dfe0b9909acff51ac4ba3c1ecc367dd18779355e5528999039d9e821e",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
@@ -1151,8 +1183,8 @@
     },
     {
       "path": "scripts/render_comparison_video.py",
-      "bytes": 12029,
-      "sha256": "0c904dbfab71be20a924c60be1fa81b7d14e7deb34a97f8fa58ff4ebaa2de2c9",
+      "bytes": 13309,
+      "sha256": "7f3543466e20485ebe91b4e547e2d2481d61b6073e63a8c2bd1b5e3e51676da3",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
@@ -1247,48 +1279,48 @@
     },
     {
       "path": "web/README.md",
-      "bytes": 9792,
-      "sha256": "0c47d1b2c31ebb668b75bee3aa62c93d96af3f14bd1c5b01b21e507e25aaba5e",
+      "bytes": 5896,
+      "sha256": "e2e2ffa8909cf3a72401331e2cfceca19fa705085a0ae73379e83c007ac07168",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "web/app.js",
-      "bytes": 32494,
-      "sha256": "bed2545345e927afc2f268d88726144e4d4813c642412cb3fef0758f52b4d85b",
+      "bytes": 34088,
+      "sha256": "92c769251bf401870ec304580d8b1c67f7355fcb74a8a81ddc7424e543c04e49",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
     },
     {
       "path": "web/comparison.css",
-      "bytes": 6015,
-      "sha256": "11117fb300d2936500bd8169961abe02e148d45176938d1d5725db92cbad25e7",
+      "bytes": 6129,
+      "sha256": "824f7a7fc1e72bb6b979dbce7dfa110494f75e1b97ee78b81a2456c102f24f7e",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
     },
     {
       "path": "web/comparison.html",
-      "bytes": 1884,
-      "sha256": "4001159b2d5f422afac235272bb1a4c167867b108a0e6152236ae437343509e9",
+      "bytes": 1983,
+      "sha256": "c76611b62b5f5aa62d9d86c26b1df56f465b58499210e04e36472cc8cfa8a1e2",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
     },
     {
       "path": "web/comparison.js",
-      "bytes": 8552,
-      "sha256": "dcb56d2e2800efb31d04ec9b4933a084942fcdbbc1a6ba4bef1c3e94f6b0f226",
+      "bytes": 8533,
+      "sha256": "216acde9ea102419719382663d45442d2bb3e31200f2131681326714ec8306da",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
     },
     {
       "path": "web/comparison_results.json",
-      "bytes": 1856449,
-      "sha256": "2057138553b18729f0d9ccf5e6696b6068aab8ad9e6acfd4a4973e92033f093f",
+      "bytes": 1055072,
+      "sha256": "3cf227b88748fcd5eaec666019bb289de9a1cc25c0d0f839e958f245501d3cb6",
       "category": "three_system_evaluation_evidence",
       "provenance": "自写环境上的真实三方评测、最小Jev测评响应及其可视化；不含私有教师训练标签或供应商账户envelope",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights"
@@ -1303,8 +1335,8 @@
     },
     {
       "path": "web/index.html",
-      "bytes": 8671,
-      "sha256": "7508559b7a78593549d75ba2b426ddee86c8ff25f1d60c19d3740b21624cd1b8",
+      "bytes": 8809,
+      "sha256": "489d1a05379238a6e179f1c975020dd36db7d13eaf0d8c5c36709f03e33657b6",
       "category": "authored_source",
       "provenance": "本项目自写实现；参考来源在研究报告中说明",
       "license_scope": "MIT"
@@ -1419,18 +1451,6 @@
     {
       "document": "research/toy_experiment_report_zh.md",
       "target_not_in_package": "toy_results/inference_example_fp32.json"
-    },
-    {
-      "document": "web/README.md",
-      "target_not_in_package": "../research/web_real_browser_check.json"
-    },
-    {
-      "document": "web/README.md",
-      "target_not_in_package": "../research/web_screenshots/"
-    },
-    {
-      "document": "web/README.md",
-      "target_not_in_package": "../research/web_v3_browser_check.json"
     }
   ],
   "project": "NanoJev"
