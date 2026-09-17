@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "created_at_utc": "2026-09-17T21:40:57.717328+00:00",
+  "created_at_utc": "2026-09-17T22:08:18.756608+00:00",
   "operation": "private_development_snapshot",
   "parent_release_commit": "614b302a069a648f4cdd00e447d57683d26db39c",
-  "file_count": 239,
-  "total_bytes": 175514333,
+  "file_count": 260,
+  "total_bytes": 182791740,
   "files": [
     {
       "path": ".env.example",
@@ -32,27 +32,91 @@
     },
     {
       "path": "README.en.md",
-      "bytes": 9580,
-      "sha256": "e0538ad12edcc6fa8198772b05d72636e6b9a7884e830e950895747f17867f60",
+      "bytes": 8334,
+      "sha256": "b568a9065b8ad5adfb2d9c6e4b3fd8e95aa87759546d6595ab3076ecdde48159",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.md",
-      "bytes": 9580,
-      "sha256": "e0538ad12edcc6fa8198772b05d72636e6b9a7884e830e950895747f17867f60",
+      "bytes": 8334,
+      "sha256": "b568a9065b8ad5adfb2d9c6e4b3fd8e95aa87759546d6595ab3076ecdde48159",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.zh-CN.md",
-      "bytes": 5931,
-      "sha256": "5205df9f44344121e4276d0430aa90db141d642156207d64364260dbfd68046c",
+      "bytes": 7563,
+      "sha256": "ffc786368b77aefe45bc3e65662655a32f32325bead777b05674aee026d839de",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
+    },
+    {
+      "path": "assets/arcade_data_manifest.json",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 12873,
+      "sha256": "95f589f5ed99433b23c09bde6beb3c49ff61af30074d5284605305b7163f9b31"
+    },
+    {
+      "path": "assets/arcade_maze.gif",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 949814,
+      "sha256": "e3706c6a8f41b9c71b9ad91c020e7f4098fb5b1eff0fb87743dd7a83170728c4"
+    },
+    {
+      "path": "assets/arcade_maze.mp4",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 521934,
+      "sha256": "d37cadddb694cae94fb59ee70be4c6cf4e1b0aa5644d7d72584294a822523d18"
+    },
+    {
+      "path": "assets/arcade_maze.png",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 356940,
+      "sha256": "3cde2e6414f0d20bc99f14759fca187be96576c5282ff2cc9e7a99734fbe6632"
+    },
+    {
+      "path": "assets/arcade_media_manifest.json",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 2829,
+      "sha256": "a823e93bf0fdb88f9eafdb8e1697eaa5eb2f5b1a0991ce7d03709da07d489f9e"
+    },
+    {
+      "path": "assets/arcade_snake.gif",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 1727268,
+      "sha256": "0da7b9702d33c38abd28e5c420bbebdf8591cfd397ddce5ae9a00cd0e88450f2"
+    },
+    {
+      "path": "assets/arcade_snake.mp4",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 606286,
+      "sha256": "bbc21a0b95c75fc4c6855c160d10e9ce12e959f38e65b9da7f7c9da3feb7fcc5"
+    },
+    {
+      "path": "assets/arcade_snake.png",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 331436,
+      "sha256": "25134d5c1b6cec5673ce2d96946df39106f85990688e04bd27d74f1e5068340e"
     },
     {
       "path": "assets/comparison_greedy.gif",
@@ -967,6 +1031,38 @@
       "license_scope": "authored program data: CC0-1.0; third-party rights and weight licenses unaffected"
     },
     {
+      "path": "results/arcade_controller_comparison.json",
+      "category": "development_experiment_evidence",
+      "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
+      "bytes": 53899,
+      "sha256": "d2240a898de3c0415c1364a5790f941afcdd1f47d92a7e391754725068d94036"
+    },
+    {
+      "path": "results/arcade_costs.json",
+      "category": "development_experiment_evidence",
+      "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
+      "bytes": 1755,
+      "sha256": "b5508844a1ef08ddb29cdde1dd2acaa8d4e1eefd10876448e4e43fd8a7699297"
+    },
+    {
+      "path": "results/arcade_selection_protocol.json",
+      "category": "development_experiment_evidence",
+      "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
+      "bytes": 1797,
+      "sha256": "61ff254407f96e12d75afb3e0d16efae3e65ad0006f8dc3d664abce5b615f8f0"
+    },
+    {
+      "path": "results/arcade_snake_cohort.jsonl",
+      "category": "development_experiment_evidence",
+      "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
+      "bytes": 2437,
+      "sha256": "7009656e7f8c535a14b9007083e2e26275c62e238b56df68629a053ebfb21cc9"
+    },
+    {
       "path": "results/calibrated_learning_benchmark.json",
       "category": "development_experiment_evidence",
       "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
@@ -1029,6 +1125,14 @@
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
       "bytes": 133132,
       "sha256": "1726a01384ebec016d3ea30aca0196e374dff360ef3474592ac9f4d5b2ea02f0"
+    },
+    {
+      "path": "results/composed_snake_constant_greedy.json",
+      "category": "development_experiment_evidence",
+      "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
+      "bytes": 1707492,
+      "sha256": "8ed9adf681869931abf850a3a20e722cc1b1352ad644f5d19e1980c70d56c1ee"
     },
     {
       "path": "results/dataset_reproduction_check.json",
@@ -1279,6 +1383,14 @@
       "sha256": "b063fcd0701a8c8c7474497dbc9b700d15ca07982902823d3a5e77a59291b921"
     },
     {
+      "path": "scripts/build_arcade_demo.py",
+      "category": "authored_source",
+      "provenance": "Project-authored implementation and validation code.",
+      "license_scope": "MIT",
+      "bytes": 22030,
+      "sha256": "101bcd77e7100006957237ab35c2612a88b13b18444aec5e09d9c3b24e4794ad"
+    },
+    {
       "path": "scripts/build_demo_artifact.py",
       "bytes": 2555,
       "sha256": "324ca713703aeb11fa835a5ed4ffc60cd63faca19f46809906232af58e1af52c",
@@ -1341,6 +1453,14 @@
       "license_scope": "MIT",
       "bytes": 4129,
       "sha256": "b58abcd15ce7ec79452738e023b9a0e6362f3743d6f34eb35e9ba341c169b785"
+    },
+    {
+      "path": "scripts/capture_arcade.mjs",
+      "category": "authored_source",
+      "provenance": "Project-authored implementation and validation code.",
+      "license_scope": "MIT",
+      "bytes": 9818,
+      "sha256": "0df3241ac25a13f5af2c3c482fa9dd81eaa1429cf7bf045ce743af7bee33eae1"
     },
     {
       "path": "scripts/capture_comparison.mjs",
@@ -1421,6 +1541,14 @@
       "license_scope": "MIT",
       "bytes": 20735,
       "sha256": "b443469cedf81b95c154e33a7d90accd9bb7cd7423a40bfd7314be1f42fc9ae5"
+    },
+    {
+      "path": "scripts/evaluate_composed_snake.py",
+      "category": "authored_source",
+      "provenance": "Project-authored implementation and validation code.",
+      "license_scope": "MIT",
+      "bytes": 17961,
+      "sha256": "0aea966938b1afa70422b3d8ee5084ce11bbf8a0b73ca73691a36d15d77f3667"
     },
     {
       "path": "scripts/evaluate_game_policy.py",
@@ -1759,6 +1887,14 @@
       "sha256": "598a66ff198f3818eadeacaa99c5561f4761f73e24eb0d2a19fb8ec2a50a6c2e"
     },
     {
+      "path": "scripts/test_composed_snake.py",
+      "category": "authored_source",
+      "provenance": "Project-authored implementation and validation code.",
+      "license_scope": "MIT",
+      "bytes": 5474,
+      "sha256": "8fa6beffe7a24fec41f7ac9bf70e6b2a194e8b95f7e12095e18b1185ba5f08bd"
+    },
+    {
       "path": "scripts/test_freeze_scaled_labels.py",
       "category": "authored_source",
       "provenance": "Project-authored implementation and validation code.",
@@ -1848,8 +1984,8 @@
     },
     {
       "path": "web/README.md",
-      "bytes": 5896,
-      "sha256": "e2e2ffa8909cf3a72401331e2cfceca19fa705085a0ae73379e83c007ac07168",
+      "bytes": 8245,
+      "sha256": "225fe2311551598679ca27d4d16d0ac0b10495aa5537aab2bdbe5401229a374c",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
@@ -1861,6 +1997,38 @@
       "category": "authored_source",
       "provenance": "Project-authored implementation; references are documented in the project reports.",
       "license_scope": "MIT"
+    },
+    {
+      "path": "web/arcade.css",
+      "category": "authored_source",
+      "provenance": "Project-authored replay interface and recorded game states with actual probabilities and outcomes.",
+      "license_scope": "MIT for authored code; external model outputs/marks retain applicable rights",
+      "bytes": 15130,
+      "sha256": "b791eb1ec0719f98db4cacbd5209ea784a3afdfab95984b51b53328e262522fe"
+    },
+    {
+      "path": "web/arcade.html",
+      "category": "authored_source",
+      "provenance": "Project-authored replay interface and recorded game states with actual probabilities and outcomes.",
+      "license_scope": "MIT for authored code; external model outputs/marks retain applicable rights",
+      "bytes": 5547,
+      "sha256": "40da646625b741a8b36f765e24c236bdf6bb33aed99fb78aebd309a5219075f9"
+    },
+    {
+      "path": "web/arcade.js",
+      "category": "authored_source",
+      "provenance": "Project-authored replay interface and recorded game states with actual probabilities and outcomes.",
+      "license_scope": "MIT for authored code; external model outputs/marks retain applicable rights",
+      "bytes": 23914,
+      "sha256": "2afbf301534033d6782ad6a47d6fe1442a6524ff5093f413c47870f2a84c3025"
+    },
+    {
+      "path": "web/arcade_results.json",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Project-authored replay interface and recorded game states with actual probabilities and outcomes.",
+      "license_scope": "MIT for authored code; external model outputs/marks retain applicable rights",
+      "bytes": 899305,
+      "sha256": "93bf42e4be54923fced3bea20a61d66c925a10e5e813c91ef92579aa3ff3d23f"
     },
     {
       "path": "web/comparison.css",
@@ -1904,8 +2072,8 @@
     },
     {
       "path": "web/index.html",
-      "bytes": 8809,
-      "sha256": "489d1a05379238a6e179f1c975020dd36db7d13eaf0d8c5c36709f03e33657b6",
+      "bytes": 8788,
+      "sha256": "e4a424ad6876b6bb4b3157989b83613481bba63067dfe2f322392cab8dbea3ae",
       "category": "authored_source",
       "provenance": "Project-authored implementation; references are documented in the project reports.",
       "license_scope": "MIT"

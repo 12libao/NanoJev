@@ -1,6 +1,6 @@
 # NanoJev viewer
 
-**A nano replica of Jev.** The English interface reads recorded model results from local JSON files. It uses plain HTML, CSS, and JavaScript, with no framework or external scripts.
+**A nano replica of [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev).** The English interface reads recorded model results from local JSON files. It uses plain HTML, CSS, and JavaScript, with no framework or external scripts.
 
 From the repository root:
 
@@ -8,11 +8,36 @@ From the repository root:
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-Open `http://127.0.0.1:8080` for the experiment viewer or `http://127.0.0.1:8080/comparison.html` for the selected success cases. Serve only the `web` directory. Opening the HTML as a local file can prevent JSON loading.
+Open **http://127.0.0.1:8080/arcade.html** for the new maze and Snake arcade. The earlier comparison remains at `http://127.0.0.1:8080/comparison.html`, and the decision lab is at `http://127.0.0.1:8080`. Serve only the `web` directory. Opening the HTML as a local file can prevent JSON loading.
 
 The main viewer offers model and episode selection, step controls, playback, action probabilities, recorded execution details, and parallel batches. V2 and V3 have different evaluation cohorts; their summaries remain separate. Sampled controllers display the action that was actually taken, including when it differs from the most probable action. Completed trajectories hold their final state.
 
-## Selected success cases
+## Maze + Snake: open the decision arcade
+
+The [arcade](arcade.html) reads `arcade_results.json` and replays two recorded showcase runs, with actual actions, probabilities, and complete final outcomes.
+
+- **50×50 maze:** NanoJev reaches the goal in 244 attempts with 36 collisions; Jev uses 2,738 attempts with 1,044 collisions; Starting NanoJev uses 171 attempts with 43 collisions. Models judge local edges while the same exploration code maintains movement memory. Starting NanoJev is an earlier trained checkpoint.
+- **12×12 Snake, seed 61005, greedy control:** NanoJev collects 27 food in 256 steps, Jev 30 in 256, and untuned Qwen 25 in 211 before becoming trapped. The common planner filters immediate collisions and ranks static food paths; each model chooses among remaining tied candidates. Single-candidate moves are forced by code.
+
+[Recorded sources and replay verification](../assets/arcade_data_manifest.json) · [Maze GIF](../assets/arcade_maze.gif) / [MP4](../assets/arcade_maze.mp4) · [Snake GIF](../assets/arcade_snake.gif) / [MP4](../assets/arcade_snake.mp4)
+
+The GIFs and MP4s follow NanoJev's complete runs. Use the model tabs to replay the other systems, including their terminal states. The [eight-case comparison](../results/arcade_controller_comparison.json) records both tested controllers; the showcase uses one selected Snake controller for every system.
+
+To recreate the arcade media from its included data, install Playwright and FFmpeg and provide their local paths:
+
+```bash
+node scripts/capture_arcade.mjs \
+  --web-root web --data web/arcade_results.json \
+  --output runs/arcade_media --work runs/arcade_capture \
+  --steps-per-second 16 \
+  --playwright-module /path/to/playwright/index.mjs \
+  --ffmpeg /path/to/ffmpeg \
+  --chrome /path/to/chrome
+```
+
+The capture checks visible playback controls, every rendered NanoJev state, all six terminal states, and mobile layout. It uses a local allowlisted server and makes no model calls. The [media manifest](../assets/arcade_media_manifest.json) records file hashes and encoded durations.
+
+## Earlier navigation showcase
 
 The showcase presents **NanoJev / Jev / Untuned Qwen** on two TEST maps and two OOD maps. These maps were selected by outcome: NanoJev and Jev reached the goal while Untuned Qwen reached the step limit under both greedy and sampling controllers. The [selection record](../research/nanojev_showcase_selection.json) contains the four episode IDs, rule, actual outcomes, and source hashes. The [showcase notes](../research/nanojev_showcase.md) explain the selection.
 
@@ -20,7 +45,7 @@ Each MP4 includes all four selected cases. Playback advances by environment step
 
 The six source trajectory files remain unchanged. The reader JSON contains the drawing fields needed for these 24 recorded trajectories. It retains original action probabilities, sampled actions, and source/checkpoint hashes.
 
-## Recreate the media
+## Recreate the earlier comparison media
 
 Rendering requires Python, Node.js, Playwright, Chrome, and FFmpeg with libx264. The static viewer requires none of these tools. The renderer reads existing trajectories and makes no API or GPU calls.
 
@@ -94,6 +119,9 @@ The interface shows the actual response and browser round-trip duration. The bac
 node --check web/app.js
 node --check web/comparison.js
 node --check scripts/capture_comparison.mjs
+node --check web/arcade.js
+node --check scripts/capture_arcade.mjs
+python3 scripts/test_composed_snake.py
 ```
 
 The exported media and viewer were checked with isolated, unsigned-in Chrome 153 and Playwright 1.63. Detailed results are in [the playback check](../assets/comparison_playback_check.json) and [the media manifest](../assets/comparison_media_manifest.json). FFmpeg 7.1 encodes the H.264/yuv420p MP4 files; Pillow is used only for optional GIF frame inspection.

@@ -2,32 +2,47 @@
 
 **简体中文** | [English](README.md)
 
-> 当前为 NanoJev 私有开发仓库。新增大迷宫、贪吃蛇与校准奖励实验，详见[英文开发说明](README.md)、[游戏流程](docs/SCALED_GAMES.md)和 [RLCD 实验](docs/RLCD_EXPERIMENT.md)。下方保留已发布基线的演示与结果。
+**一个 0.6B 并行决策模型：输入状态与问题，直接得到完整概率分布，无需生成答案 token。**
 
-当前主线：[原子判断与代码规划](docs/ATOMIC_PLANNING.md)。局部模型在测试集和 50×50 保留集的准确率分别为 77.84% 和 76.56%；完整英文报告包含实际探索轨迹与 RLCD 对照。
-**[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 的迷你复现：一个以 Qwen3-0.6B 为基础的并行决策模型。** 输入状态、问题和候选集合，直接得到全部决策的概率分布。
+[模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data) · [迷宫 + 贪吃蛇：打开决策游戏厅](web/arcade.html)
 
-NanoJev 将多个状态、多个问题和所有候选放进一次模型前向，无需逐 token 生成答案。项目提供数据生成、模型训练、评测、推理服务和可视化的完整流程。
+## 真实对局实录
 
-[Hugging Face 模型](https://huggingface.co/C-Tianyu/NanoJev) · [Hugging Face 数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+看模型判断与代码规划共同完成任务。每个游戏的三组系统都使用相同控制代码，回放保留实际动作、概率和完整终局。
 
-## 看 NanoJev 完成任务
+### 找到出口：50×50 迷宫
 
-**精选真实通关案例：NanoJev 和 [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 都到达目标，原始 Qwen 在步数上限内未到达。** 两段视频展示相同的 4 张地图，覆盖 4×4 和 6×6；三列按环境步数同步，实时显示所选动作和候选概率。
+[![NanoJev、Jev 与起始 NanoJev 探索同一张 50×50 迷宫](assets/arcade_maze.gif)](assets/arcade_maze.mp4)
 
-### 按概率选择动作
+[观看 MP4](assets/arcade_maze.mp4) · [交互回放](web/arcade.html)
 
-[![NanoJev 与 Jev 通关、原始 Qwen 未通关的概率采样案例](assets/comparison_sample.gif)](assets/comparison_sample.mp4)
+模型判断四个局部方向是否可通行；代码记住碰撞、探索未知边，并沿已经走通过的路径重新定位。
 
-[观看完整视频](assets/comparison_sample.mp4) · [高清预览](assets/comparison_sample.png)
+| 系统 | 行动尝试 | 碰撞 | 结果 |
+|---|---:|---:|---|
+| **NanoJev** | **244** | **36** | **到达目标** |
+| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 2,738 | 1,044 | 到达目标 |
+| 起始 NanoJev | 171 | 43 | 到达目标 |
 
-### 每步选择最高概率动作
+起始 NanoJev 是此前已经训练的 NanoJev checkpoint；新版模型进行了与局部输入对应的安全判断训练。
 
-[![NanoJev 与 Jev 通关、原始 Qwen 未通关的贪心案例](assets/comparison_greedy.gif)](assets/comparison_greedy.mp4)
+### 持续成长：12×12 贪吃蛇
 
-[观看完整视频](assets/comparison_greedy.mp4) · [高清预览](assets/comparison_greedy.png)
+[![NanoJev、Jev 与原始 Qwen 使用共同规划器玩贪吃蛇](assets/arcade_snake.gif)](assets/arcade_snake.mp4)
 
-GIF 展示首个案例，完整视频展示全部 4 例。交互页面支持切换地图、暂停和逐步查看动作。
+[观看 MP4](assets/arcade_snake.mp4) · [交互回放](web/arcade.html)
+
+共同规划器先排除立即碰撞的动作，再寻找通向当前食物的静态路径。模型在剩余候选之间选择；仅剩一个候选时由代码直接执行。**种子：61005；控制方式：贪心选择。**
+
+| 系统 | 吃到食物 | 步数 | 结果 |
+|---|---:|---:|---|
+| **NanoJev** | **27** | **256** | **达到上限时仍存活** |
+| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 30 | 256 | 达到上限时仍存活 |
+| 原始 Qwen3-0.6B | 25 | 211 | 陷入死局 |
+
+原始 Qwen 使用未经本项目微调的预训练权重和原生语言模型输出头，概率条件限定为所提供的 A–D 候选 token。
+
+[案例、模型身份与轨迹核验记录](assets/arcade_data_manifest.json)
 
 ## 核心能力
 
@@ -35,17 +50,29 @@ GIF 展示首个案例，完整视频展示全部 4 例。交互页面支持切�
 |---|---|
 | 多状态并行 | 同一批处理多个独立环境状态 |
 | 多问题并行 | 每个状态同时回答多个问题 |
-| 动态候选 | Choice 每题支持 2–255 个候选，共享同一个决策头 |
+| 动态候选 | Choice 每题支持 2–255 个候选，共享决策头 |
 | 多种决策类型 | Choice 候选分布、Boolean 概率、Score 的 2–10 级分布及期望 |
 | 直接输出概率 | 一次前向得到完整候选分布，无输出 token 解码 |
-| 轻量底座 | 使用 Qwen3-0.6B，支持单卡训练与部署 |
+| 轻量底座 | Qwen3-0.6B，支持单卡训练与部署 |
 | 持久推理服务 | 模型加载一次，复用权重处理后续请求 |
 
 实际运行已验证：**6 个状态 · 18 个问题 · 44 条候选路径 · 1 次 backbone 前向**。[并行调用记录](research/parallel_example_v3.json)
 
-## 40 张地图的评测结果
+## 更大的游戏与校准决策
 
-使用 T=1 概率采样，分别评测 20 张 4×4 测试地图和 20 张 6×6 OOD 地图。下面是完整 40 图的完成率：
+- **完整环境：** 8×8、16×16、32×32、50×50 迷宫，四类拓扑，每图多个位置，并支持配置更大尺寸。
+- **局部判断与代码规划：** 统一 5×5 局部观察、四方向并行安全判断、移动记忆及模型引导探索。
+- **贪吃蛇规则：** 可复现食物生成、身体增长、碰撞与尾部移动、动态动作候选和安全问题。
+- **概率学习：** 观测事件数据、CE/Brier 训练、成对适当奖励学习、精确梯度检查及已完成的 Qwen3-0.6B 训练。
+- **完整评测：** 按地图划分数据、固定游戏集合、真实模型执行与独立轨迹重放核验。
+
+局部安全模型的测试题准确率为 **77.84%**，50×50 OOD 题为 **76.56%**。概率学习先导中，成对适当奖励组的分布误差为 **测试 0.11844 / OOD 0.06202**；该误差是模型分布与模拟器事件概率之间的差值平方和。
+
+[原子判断与规划](docs/ATOMIC_PLANNING.md) · [大规模游戏流程](docs/SCALED_GAMES.md) · [RLCD 实现与结果](docs/RLCD_EXPERIMENT.md) · [输入契约](docs/TYPESAFE_CONTRACT.md) · [游戏结果](docs/DEVELOPMENT_RESULTS.md)
+
+## 此前完整 40 图导航评测
+
+**控制方式：T=1 概率采样。** 包含 20 张 4×4 测试地图和 20 张 6×6 OOD 地图。
 
 | 模型 | 4×4 测试地图 | 6×6 OOD 地图 |
 |---|---:|---:|
@@ -53,30 +80,42 @@ GIF 展示首个案例，完整视频展示全部 4 例。交互页面支持切�
 | [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 20/20 · 100% | 19/20 · 95% |
 | 原始 Qwen3-0.6B | 7/20 · 35% | 3/20 · 15% |
 
-**NanoJev 在更大的 6×6 地图上达到 90% 完成率，原始 Qwen 为 15%。** 原始 Qwen 使用预训练权重，未做本任务微调。
+[此前的对照回放](web/comparison.html) · [完整评测结果](research/nanojev_comparison_public.json)
 
-[完整评测结果](research/nanojev_comparison_public.json) · [逐局核验](research/nanojev_comparison_verification.json)
+## 实现流程
 
-## 快速体验
+每个决策由**状态、问题和候选集合**定义。模型编码候选路径，再由共享决策头输出每题的完整分布。Choice 使用共享标量头与集合注意力；Boolean 使用单路径 sigmoid；Score 返回等级分布和概率加权期望。
+
+1. **构建问题：** 生成状态、问题、候选描述和目标分布。
+2. **组织数据：** 相关地图、规则及其变体保留在同一分区。
+3. **训练模型：** 初始化 Qwen3-0.6B，预热决策头，再使用完整问题的分布损失训练。
+4. **执行评测：** 测量概率质量，运行游戏控制器并记录真实动作。
+5. **服务与可视化：** 复用持久模型接口，在浏览器重放完整轨迹。
+
+[完整训练与运行手册（English）](research/pipeline_runbook.md)
+
+## 快速体验决策游戏厅
 
 交互回放只需 Python：
 
 ```bash
-git clone https://github.com/TianyuCodings/NanoJev.git
-cd NanoJev
+git clone https://github.com/TianyuCodings/NanoJev-dev.git
+cd NanoJev-dev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-打开 **http://127.0.0.1:8080/comparison.html**，即可并排查看三种模型的真实对局。
+打开 **http://127.0.0.1:8080/arcade.html**，播放迷宫与贪吃蛇实录，查看模型判断并逐步检查真实动作。此前的对照页面保留在 **http://127.0.0.1:8080/comparison.html**。
 
-在兼容 CUDA 的环境中安装运行依赖，并登录有权访问当前私有模型与数据集的 Hugging Face 账号：
+## 下载并运行模型
+
+在兼容 CUDA 的环境中安装 [Python 依赖](requirements-toy.txt)，并登录有权访问模型与数据集的 Hugging Face 账号：
 
 ```bash
 python -m pip install -r requirements-toy.txt
 hf auth login
 ```
 
-下载最终模型与数据。模型文件筛选仅获取根目录的最终 checkpoint：
+下载已发布 checkpoint 和数据集。文件筛选仅获取模型根目录的最终 checkpoint：
 
 ```python
 from huggingface_hub import snapshot_download
@@ -90,7 +129,7 @@ snapshot_download(
 )
 ```
 
-使用下载的模型启动持久服务：
+启动持久服务：
 
 ```bash
 python scripts/serve_decisions.py \
@@ -98,30 +137,13 @@ python scripts/serve_decisions.py \
   --web-root web --port 8765
 ```
 
-打开 **http://127.0.0.1:8765**，或向 **`POST /api/evaluate`** 发送批量请求。
+打开 **http://127.0.0.1:8765**，或向 **`POST /api/evaluate`** 发送批量请求。模型只加载一次，后续请求复用权重。
 
-## 实现流程
+[完整手册](research/pipeline_runbook.md)包含数据生成、训练、评测、checkpoint 创建，以及从下载模型和数据继续运行的命令。
 
-```text
-生成状态、问题与候选
-        ↓
-构建完整目标分布，按源场景划分数据集
-        ↓
-Qwen3-0.6B 编码 + 动态候选决策头
-        ↓
-按完整问题计算分布损失并训练
-        ↓
-留出集概率评测 + 游戏闭环评测
-        ↓
-批量推理服务 + 交互回放
-```
+## 路线图
 
-Choice 将候选路径编码为共享分数，通过集合注意力与 softmax 输出每题的 K 维分布；Boolean 使用 sigmoid，Score 输出完整等级分布与期望。训练使用完整问题的目标分布计算 `L = -Σ qᵢ log pᵢ`，microbatch 与梯度累积均保留问题内的候选集合。
-
-导航训练阶段构建了 **500 张地图、3,000 个状态、9,000 个问题**。实际运行中，每组导航训练在单张 A100 80GB 上完成 1,200 步，耗时约 8.3–10 分钟。
-
-[完整训练与运行手册（English）](research/pipeline_runbook.md) · [Python 依赖](requirements-toy.txt)
-
-## 待办
-
-- [ ] **RLCD**：加入面向校准决策的强化学习训练流程（Reinforcement Learning for Calibrated Decisions）。
+- [x] **扩展数据：** 大迷宫、贪吃蛇、原子问题与观测事件数据集。
+- [x] **校准奖励原型：** 实现并验证成对适当奖励学习，提供 CE/Brier 对照。
+- [ ] **扩展 RLCD：** 更多语义任务、随机长程事件与模型种子。
+- [ ] **结构化输入：** 为结构化 instructions、criteria 和原生 Noul 接口建立新版编码器。

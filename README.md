@@ -2,82 +2,76 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-> Private development repository for NanoJev. The [release repository](https://github.com/TianyuCodings/NanoJev) remains separate.
+**A 0.6B parallel decision model. States and questions in, complete probability distributions out—with zero output-token decoding.**
 
-## Current development
+[Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data) · [Maze + Snake: open the decision arcade](web/arcade.html)
 
-- **Larger mazes:** complete 8×8, 16×16, 32×32, and 50×50 boards, four maze topologies, multiple positions per map, and configurable larger sizes.
-- **Atomic judgments + code planning:** matched 5×5 local training inputs, parallel directional judgments, and model-guided edge exploration with movement memory.
-- **Snake:** reproducible food generation, body growth, collision and tail-movement rules, action choices, and parallel safety questions.
-- **Calibrated rewards:** an implemented paired-sample policy-gradient objective, direct CE/Brier controls, exact gradient checks, and real Qwen3-0.6B training runs.
-- **End-to-end evaluation:** frozen game cohorts, live [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) comparisons, map-separated datasets, and independently verified trajectory replay.
+## Recorded showcase runs
 
-Start with [atomic planning](docs/ATOMIC_PLANNING.md), the [scaled-game pipeline](docs/SCALED_GAMES.md), [RLCD experiment](docs/RLCD_EXPERIMENT.md), [TypeSafe input contract](docs/TYPESAFE_CONTRACT.md), and [Fable review](docs/FABLE_REVIEW.md).
+Watch model judgments and shared code planning work together. Each game uses the same controller code across its three systems; the recordings preserve the actual actions, probabilities, and final outcomes.
 
-```bash
-git clone https://github.com/TianyuCodings/NanoJev-dev.git
-cd NanoJev-dev
-```
+### Find the exit: 50×50 maze
 
-### Probability-learning pilot
+[![NanoJev finds the exit in a 50×50 maze, with recorded comparison results](assets/arcade_maze.gif)](assets/arcade_maze.mp4)
 
-From the released NanoJev checkpoint, each training arm uses the same observed events and 100 updates. Probability error is `sum((p - q)^2)` against the simulator's exact event distribution; lower is better.
+[Watch the MP4](assets/arcade_maze.mp4) · [Interactive replay](web/arcade.html)
 
-| Model / objective | Held-out test, 364 events | 50×50 OOD, 128 events |
-|---|---:|---:|
-| NanoJev starting checkpoint | 0.27708 | 0.31995 |
-| Observed-outcome CE | 0.12423 | 0.07250 |
-| Direct Brier | 0.13844 | 0.06719 |
-| Paired proper reward | **0.11844** | **0.06202** |
+The model judges four local directions. Code remembers collisions, explores untried edges, and repositions through verified open paths.
 
-This seed-17 pilot measures one-step events under a specified random actuator. The [experiment report](docs/RLCD_EXPERIMENT.md) includes event coverage, NLL/Brier, the separate three-seed algorithm benchmark, and the complete reward definition. The [game results](docs/DEVELOPMENT_RESULTS.md) use their own fixed closed-loop protocol.
+| System | Attempts | Collisions | Outcome |
+|---|---:|---:|---|
+| **NanoJev** | **244** | **36** | **Goal reached** |
+| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 2,738 | 1,044 | Goal reached |
+| Starting NanoJev | 171 | 43 | Goal reached |
 
-### Local-judgment pilot
+Starting NanoJev is the earlier trained NanoJev checkpoint. The new NanoJev model uses matched local safety training.
 
-The new local model learns four directional safety questions from 300 maze snapshots, preserving map-separated splits. It processes a 5×5 observation at every board size.
+### Keep growing: 12×12 Snake
 
-| Local geometry questions | Test, 176 questions | 50×50 OOD, 64 questions |
-|---|---:|---:|
-| Constant true | 56.25% | 56.25% |
-| **Locally trained NanoJev** | **77.84%** | **76.56%** |
+[![NanoJev grows through a complete Snake run, with recorded comparison results](assets/arcade_snake.gif)](assets/arcade_snake.mp4)
 
-On a separate identical 68-question route audit, starting NanoJev scores 64.71%, the locally trained model 75.00%, and [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 76.47%. See the [atomic training and planning report](docs/ATOMIC_PLANNING.md) and [model-guided exploration results](docs/MODEL_EDGE_RESULTS.md) for full probabilities, actual collisions, and completion measurements.
+[Watch the MP4](assets/arcade_snake.mp4) · [Interactive replay](web/arcade.html)
 
-## Released baseline
+The common planner filters immediate collisions and finds static paths toward the visible food. The model breaks ties between the remaining actions; a single remaining action is a code-forced move. **Seed: 61005. Controller: greedy.**
 
-**A 0.6B parallel decision model that turns states and questions into complete probability distributions.**
+| System | Food collected | Steps | Outcome |
+|---|---:|---:|---|
+| **NanoJev** | **27** | **256** | **Alive at horizon** |
+| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 30 | 256 | Alive at horizon |
+| Untuned Qwen3-0.6B | 25 | 211 | Trapped |
 
-Give NanoJev multiple states, multiple questions, and dynamic candidate sets. It evaluates them in one batched backbone forward pass and returns structured decisions with **zero output-token decoding**.
+Untuned Qwen uses its original pretrained weights and native language-model head, conditioned on the offered A–D answer tokens.
 
-[Model on Hugging Face](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset on Hugging Face](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+[Recorded cases and replay verification](assets/arcade_data_manifest.json) · [Eight-case controller comparison](results/arcade_controller_comparison.json)
 
-## See it in action
+## Features
 
-Watch **NanoJev**, **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)**, and **untuned Qwen3-0.6B** navigate the same maps side by side.
+- **0.6B LLM backbone.** Qwen3-0.6B with decision heads for structured outputs.
+- **Multiple states and questions in one forward.** Batch independent decisions together.
+- **Dynamic Choice.** Supply **2–255 candidates** and receive a probability for every candidate.
+- **Boolean decisions.** Receive the probability that a complete proposition is true.
+- **Ordered Score.** Supply **2–10 levels** and receive the level distribution and expected score.
+- **Complete distributions.** Use the same output for ranking, greedy selection, or probability sampling.
+- **Zero output decoding.** Read decisions directly from a forward pass.
+- **Persistent serving.** Load a checkpoint once and reuse it across requests.
 
-The videos highlight four selected successful examples: two 4×4 test maps and two 6×6 OOD maps where NanoJev and [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) reach the goal while original Qwen does not. Both controller videos use the same four examples.
+Measured in the running service: **6 states · 18 questions · 44 candidate paths · 1 backbone forward**.
 
-### Probability sampling
+## Larger games and calibrated decisions
 
-Choose each action from its full probability distribution at **T=1**.
+- **Full-size environments:** 8×8, 16×16, 32×32, and 50×50 mazes, four topologies, multiple positions per map, and configurable larger sizes.
+- **Local judgments + code planning:** matched 5×5 observations, four parallel safety judgments, movement memory, and model-guided exploration.
+- **Snake dynamics:** reproducible food generation, body growth, collision rules, tail movement, dynamic action candidates, and safety questions.
+- **Probability learning:** observed-event datasets, CE/Brier training, paired proper-reward learning, exact gradient checks, and completed Qwen3-0.6B runs.
+- **Verified evaluation:** map-separated data, frozen game cohorts, real model execution, and independent trajectory replay.
 
-[![NanoJev, Jev, and original Qwen: probability sampling](assets/comparison_sample.gif)](assets/comparison_sample.mp4)
+The local safety model reaches **77.84% accuracy on test questions** and **76.56% on 50×50 OOD questions**. The probability-learning pilot's paired proper-reward arm reaches **0.11844 test / 0.06202 OOD distribution error**, measured as the sum of squared differences from the simulator's event probabilities.
 
-[Watch the full MP4](assets/comparison_sample.mp4) · [Still preview](assets/comparison_sample.png)
+[Atomic planning](docs/ATOMIC_PLANNING.md) · [Scaled-game pipeline](docs/SCALED_GAMES.md) · [RLCD implementation and results](docs/RLCD_EXPERIMENT.md) · [Input contract](docs/TYPESAFE_CONTRACT.md) · [Game results](docs/DEVELOPMENT_RESULTS.md)
 
-### Greedy control
+## Earlier 40-map navigation benchmark
 
-Choose the highest-probability action at each step.
-
-[![NanoJev, Jev, and original Qwen: greedy control](assets/comparison_greedy.gif)](assets/comparison_greedy.mp4)
-
-[Watch the full MP4](assets/comparison_greedy.mp4) · [Still preview](assets/comparison_greedy.png)
-
-The animations replay actual model trajectories. Panels advance by environment step, display action probabilities, and hold their final state when an episode ends. Each GIF shows the complete first example, including its outcome. Each MP4 includes all four examples.
-
-## Navigation results
-
-**Controller: T=1 probability sampling.** Results cover the complete 40-map benchmark: 20 test maps and 20 OOD maps.
+**Controller: T=1 probability sampling.** The full benchmark contains 20 test maps and 20 OOD maps.
 
 | System | 4×4 test | 6×6 OOD |
 |---|---:|---:|
@@ -85,20 +79,7 @@ The animations replay actual model trajectories. Panels advance by environment s
 | [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 20/20 — 100% | 19/20 — 95% |
 | Untuned Qwen3-0.6B | 7/20 — 35% | 3/20 — 15% |
 
-Original Qwen is pretrained and has no task-specific fine-tuning. Its action probabilities come from its native language-model head, conditioned on the offered A–D answer tokens.
-
-## Features
-
-- **0.6B LLM backbone.** Built on Qwen3-0.6B with decision heads for structured outputs.
-- **Multiple states and questions in one forward.** Batch independent decisions together.
-- **Dynamic Choice.** Supply **2–255 candidates** per question and receive a probability for every candidate.
-- **Boolean decisions.** Receive the probability that a proposition is true.
-- **Ordered Score.** Supply **2–10 levels** and receive the full level distribution and expected score.
-- **Complete distributions.** Use the same output for ranking, greedy selection, or probability sampling.
-- **Zero output decoding.** Read decisions directly from a forward pass, without generating answer tokens.
-- **Persistent serving.** Load a checkpoint once and reuse it across requests.
-
-Measured in the running service: **6 states · 18 questions · 44 candidate paths · 1 backbone forward**.
+[Earlier comparison viewer](web/comparison.html) · [Complete benchmark results](research/nanojev_comparison_public.json)
 
 ## How it works
 
@@ -106,38 +87,36 @@ Each decision is defined by a **state**, a **question**, and its **candidate set
 
 Choice uses a shared scalar head and set attention. Boolean uses a single-path sigmoid. Score evaluates its ordered level descriptions and returns their probability-weighted expectation.
 
-The implementation covers the full pipeline:
-
 1. **Build queries.** Generate states, questions, candidate descriptions, and target distributions.
-2. **Organize data.** Keep related maps, rules, and their variations in the same data split.
-3. **Train the model.** Initialize Qwen3-0.6B, warm up the decision heads, and update the model using complete-question distribution losses.
-4. **Evaluate decisions.** Measure probability quality and run closed-loop navigation with greedy and sampling controllers.
-5. **Serve and visualize.** Expose a persistent model endpoint and replay actual trajectories in the browser.
+2. **Organize data.** Keep related maps, rules, and their variations in the same split.
+3. **Train.** Initialize Qwen3-0.6B, warm up the decision heads, and train with complete-question distribution losses.
+4. **Evaluate.** Measure probability quality and execute game controllers with recorded actions.
+5. **Serve and visualize.** Reuse a persistent model endpoint and replay complete trajectories in the browser.
 
 [Complete pipeline commands](research/pipeline_runbook.md)
 
-## Quick start: interactive replay
+## Quick start: decision arcade
 
-The replay viewer runs with Python's built-in HTTP server:
+The interactive replay runs with Python's built-in HTTP server:
 
 ```bash
-git clone https://github.com/TianyuCodings/NanoJev.git
-cd NanoJev
+git clone https://github.com/TianyuCodings/NanoJev-dev.git
+cd NanoJev-dev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-Open **http://127.0.0.1:8080/comparison.html** to pause playback, switch examples, and inspect all three systems at the same environment step.
+Open **http://127.0.0.1:8080/arcade.html** to play the maze and Snake recordings, inspect decisions, and step through the actual trajectories. The earlier benchmark viewer remains at **http://127.0.0.1:8080/comparison.html**.
 
 ## Download and run the model
 
-Prepare a CUDA environment with the recorded [Python dependencies](requirements-toy.txt). Sign in with an account that has access to the currently private model and dataset:
+Prepare a CUDA environment with the recorded [Python dependencies](requirements-toy.txt). Sign in with an account that has access to the model and dataset:
 
 ```bash
 python -m pip install -r requirements-toy.txt
 hf auth login
 ```
 
-Download the final checkpoint and the dataset. The model file selection retrieves the root checkpoint only:
+Download the released checkpoint and dataset. The file selection retrieves only the root checkpoint:
 
 ```python
 from huggingface_hub import snapshot_download
@@ -161,7 +140,7 @@ python scripts/serve_decisions.py \
 
 Open **http://127.0.0.1:8765**. The service loads the model once and accepts repeated batches through **`POST /api/evaluate`**.
 
-The [pipeline runbook](research/pipeline_runbook.md) includes data generation, training, evaluation, checkpoint creation, and continuing from the downloaded model and data.
+The [pipeline runbook](research/pipeline_runbook.md) covers data generation, training, evaluation, checkpoint creation, and continuing from the downloaded model and data.
 
 ## Roadmap
 
