@@ -1,4 +1,4 @@
-# NanoJev — A nano replica of Jev
+# NanoJev — A nano replica of [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -10,9 +10,9 @@ Give NanoJev multiple states, multiple questions, and dynamic candidate sets. It
 
 ## See it in action
 
-Watch **NanoJev**, **Jev**, and **untuned Qwen3-0.6B** navigate the same maps side by side.
+Watch **NanoJev**, **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)**, and **untuned Qwen3-0.6B** navigate the same maps side by side.
 
-The videos highlight four selected successful examples: two 4×4 test maps and two 6×6 OOD maps where NanoJev and Jev reach the goal while original Qwen does not. Both controller videos use the same four examples.
+The videos highlight four selected successful examples: two 4×4 test maps and two 6×6 OOD maps where NanoJev and [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) reach the goal while original Qwen does not. Both controller videos use the same four examples.
 
 ### Probability sampling
 
@@ -39,7 +39,7 @@ The animations replay actual model trajectories. Panels advance by environment s
 | System | 4×4 test | 6×6 OOD |
 |---|---:|---:|
 | **NanoJev** | **19/20 — 95%** | **18/20 — 90%** |
-| Jev | 20/20 — 100% | 19/20 — 95% |
+| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 20/20 — 100% | 19/20 — 95% |
 | Untuned Qwen3-0.6B | 7/20 — 35% | 3/20 — 15% |
 
 Original Qwen is pretrained and has no task-specific fine-tuning. Its action probabilities come from its native language-model head, conditioned on the offered A–D answer tokens.

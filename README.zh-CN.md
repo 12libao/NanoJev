@@ -1,8 +1,8 @@
-# NanoJev — A nano replica of Jev
+# NanoJev — A nano replica of [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
 
 **简体中文** | [English](README.md)
 
-**Jev 的迷你复现：一个以 Qwen3-0.6B 为基础的并行决策模型。** 输入状态、问题和候选集合，直接得到全部决策的概率分布。
+**[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 的迷你复现：一个以 Qwen3-0.6B 为基础的并行决策模型。** 输入状态、问题和候选集合，直接得到全部决策的概率分布。
 
 NanoJev 将多个状态、多个问题和所有候选放进一次模型前向，无需逐 token 生成答案。项目提供数据生成、模型训练、评测、推理服务和可视化的完整流程。
 
@@ -10,7 +10,7 @@ NanoJev 将多个状态、多个问题和所有候选放进一次模型前向，
 
 ## 看 NanoJev 完成任务
 
-**精选真实通关案例：NanoJev 和 Jev 都到达目标，原始 Qwen 在步数上限内未到达。** 两段视频展示相同的 4 张地图，覆盖 4×4 和 6×6；三列按环境步数同步，实时显示所选动作和候选概率。
+**精选真实通关案例：NanoJev 和 [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 都到达目标，原始 Qwen 在步数上限内未到达。** 两段视频展示相同的 4 张地图，覆盖 4×4 和 6×6；三列按环境步数同步，实时显示所选动作和候选概率。
 
 ### 按概率选择动作
 
@@ -47,7 +47,7 @@ GIF 展示首个案例，完整视频展示全部 4 例。交互页面支持切�
 | 模型 | 4×4 测试地图 | 6×6 OOD 地图 |
 |---|---:|---:|
 | **NanoJev** | **19/20 · 95%** | **18/20 · 90%** |
-| Jev | 20/20 · 100% | 19/20 · 95% |
+| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 20/20 · 100% | 19/20 · 95% |
 | 原始 Qwen3-0.6B | 7/20 · 35% | 3/20 · 15% |
 
 **NanoJev 在更大的 6×6 地图上达到 90% 完成率，原始 Qwen 为 15%。** 原始 Qwen 使用预训练权重，未做本任务微调。

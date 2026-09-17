@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "created_at_utc": "2026-09-17T16:51:25.144073+00:00",
+  "created_at_utc": "2026-09-17T17:11:20.858718+00:00",
   "operation": "local_curated_repository_staging_no_network",
   "file_count": 168,
-  "total_bytes": 157077957,
+  "total_bytes": 157078887,
   "files": [
     {
       "path": ".env.example",
@@ -31,24 +31,24 @@
     },
     {
       "path": "README.en.md",
-      "bytes": 5962,
-      "sha256": "9e6cc666f2bbdfa539547c4dc74199be8b08fc5a38c307310d36570eef013baa",
+      "bytes": 6295,
+      "sha256": "1641afd065723ce77422591aa12a0f33b52ad26f79aed4afefca2f3013074a12",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.md",
-      "bytes": 5962,
-      "sha256": "9e6cc666f2bbdfa539547c4dc74199be8b08fc5a38c307310d36570eef013baa",
+      "bytes": 6295,
+      "sha256": "1641afd065723ce77422591aa12a0f33b52ad26f79aed4afefca2f3013074a12",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.zh-CN.md",
-      "bytes": 5185,
-      "sha256": "8938de33ab876a70d5a557fab40f4ee46a8249dd923ce4f7ebf588597f78ccdf",
+      "bytes": 5449,
+      "sha256": "45f6daa52c12a1086e70c61d8105bccc54a5a697ee5494d5bed0b2e006625b87",
       "category": "authored_documentation",
       "provenance": "项目自写说明/分析；外部来源及摘引不主张项目所有权，私有原文不随包提供",
       "license_scope": "MIT for authored text; third-party material retains its rights"
