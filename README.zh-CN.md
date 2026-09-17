@@ -10,7 +10,9 @@
 
 ## 三个模型，同一场游戏
 
-[![Jev、NanoJev 与原始 Qwen 并排运行贪吃蛇](assets/side_by_side_snake.png)](https://nanojev.tianyuchen99.chatgpt.site/#snake)
+[![Jev、NanoJev 与原始 Qwen 并排探索迷宫](assets/side_by_side_maze.png)](https://nanojev.tianyuchen99.chatgpt.site/#maze)
+
+[下载迷宫视频（MP4）](assets/side_by_side_maze.mp4) · 27 秒 · 1440 × 1120 · 30 fps
 
 [打开贪吃蛇](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [探索 50×50 迷宫](https://nanojev.tianyuchen99.chatgpt.site/#maze) · [真实来源与回放核验](assets/side_by_side_data_manifest.json)
 

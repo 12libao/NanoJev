@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "created_at_utc": "2026-09-17T23:12:29.573836+00:00",
+  "created_at_utc": "2026-09-17T23:23:40.620988+00:00",
   "operation": "public_release_snapshot",
-  "parent_release_commit": "5fecca25600445c77b474526e148ef5b04970253",
-  "file_count": 281,
-  "total_bytes": 195541899,
+  "parent_release_commit": "65fd3cead1a07dd4b61689ca03cc6f66840c9afe",
+  "file_count": 284,
+  "total_bytes": 196846248,
   "files": [
     {
       "path": ".env.example",
@@ -40,16 +40,16 @@
     },
     {
       "path": "README.md",
-      "bytes": 10432,
-      "sha256": "3aced6940836b5b9f7d8d7d18524a1f8570b8cf38c29ad2ecad0ef970df3d30d",
+      "bytes": 10538,
+      "sha256": "adfdc5e7d54e987bf48faf4402bc383723f079338cdd959dd82ee6b7137f0a5e",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.zh-CN.md",
-      "bytes": 9451,
-      "sha256": "4bcae1195c6e2847a6e5feb1ed5de474f3bdc7f4d03f8d7aea409de95664484c",
+      "bytes": 9543,
+      "sha256": "cb65e44c74b074e0426758e0cba75532ebff8ec2a043363260e491f298e0e07c",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
@@ -207,6 +207,14 @@
       "sha256": "46c69ca873fbd91461090bf6c27259418449bf589cdec669ca24e5167e68ed0d"
     },
     {
+      "path": "assets/side_by_side_maze.mp4",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 1281089,
+      "sha256": "9ee4bfd928a28800e8ff6016f4d11aa98ded327c65ddac28fff33c15c37b90a5"
+    },
+    {
       "path": "assets/side_by_side_maze.png",
       "category": "three_system_evaluation_evidence",
       "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
@@ -229,6 +237,14 @@
       "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
       "bytes": 152548,
       "sha256": "c953e705c0b5f097a7a3cd7aa89478d2412ff994499a7af9f2b0c9a881a8a11d"
+    },
+    {
+      "path": "assets/side_by_side_video_manifest.json",
+      "category": "three_system_evaluation_evidence",
+      "provenance": "Visualizations and reproducibility manifests of complete recorded game trajectories.",
+      "license_scope": "MIT for authored visuals; external model outputs/marks retain applicable rights",
+      "bytes": 5928,
+      "sha256": "f4c8c2cae8a96419d5b805d1de391bd9496aa956f7ad06ace84e67b73d84ee70"
     },
     {
       "path": "docs/ATOMIC_PLANNING.md",
@@ -1591,6 +1607,14 @@
       "license_scope": "MIT"
     },
     {
+      "path": "scripts/capture_side_by_side_video.mjs",
+      "category": "authored_source",
+      "provenance": "Project-authored implementation and validation code.",
+      "license_scope": "MIT",
+      "bytes": 16421,
+      "sha256": "dd9554cbff4a571cc5dae0f750c21247ebadb4aad2d843bd8aa0b82233c9b560"
+    },
+    {
       "path": "scripts/check_dynamic_candidates.py",
       "bytes": 9185,
       "sha256": "cc83c3a541cb86dcde4969f931104a8e81ea9831f989263075216d89aec514f4",
@@ -2120,8 +2144,8 @@
     },
     {
       "path": "web/README.md",
-      "bytes": 11421,
-      "sha256": "def1ef12986f70053b4f529bed492580e228b913c17a501a2089d23765b190f1",
+      "bytes": 12134,
+      "sha256": "105f255a262d261980f7a0a5af83142e6f3b6cbf8d1b1af054b1a95120afd77a",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"

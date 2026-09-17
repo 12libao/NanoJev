@@ -10,7 +10,9 @@
 
 ## Three models, one game
 
-[![Jev, NanoJev, and Untuned Qwen playing Snake side by side](assets/side_by_side_snake.png)](https://nanojev.tianyuchen99.chatgpt.site/#snake)
+[![Jev, NanoJev, and Untuned Qwen exploring the maze side by side](assets/side_by_side_maze.png)](https://nanojev.tianyuchen99.chatgpt.site/#maze)
+
+[Download the maze video (MP4)](assets/side_by_side_maze.mp4) · 27 seconds · 1440 × 1120 · 30 fps
 
 [Play Snake](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [Explore the 50×50 maze](https://nanojev.tianyuchen99.chatgpt.site/#maze) · [Recorded sources and replay checks](assets/side_by_side_data_manifest.json)
 

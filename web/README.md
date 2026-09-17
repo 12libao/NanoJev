@@ -16,7 +16,9 @@ The main viewer offers model and episode selection, step controls, playback, act
 
 ## Light side-by-side comparison
 
-[![The three-system Snake replay](../assets/side_by_side_snake.png)](https://nanojev.tianyuchen99.chatgpt.site/#snake)
+[![Jev, NanoJev, and Untuned Qwen exploring the maze side by side](../assets/side_by_side_maze.png)](https://nanojev.tianyuchen99.chatgpt.site/#maze)
+
+[Download the maze video (MP4)](../assets/side_by_side_maze.mp4) · 27 seconds · 1440 × 1120 · 30 fps
 
 `side-by-side.html` reads `side_by_side_results.json` and displays **Jev / NanoJev / Untuned Qwen** together. All panels advance by the same environment step. Each completed run freezes at its recorded final state while the others continue. Each frame's probability bars describe the last decision that produced that state; frame zero has no decision probabilities.
 
@@ -39,6 +41,18 @@ python3 scripts/stage_comparison_site.py --project /path/to/site-project
 ```
 
 The staging script copies the comparison page, styling, script, and recorded data into that project's `dist/` directory, using the comparison page as `index.html`. It also records the staged file hashes. The separate project keeps hosting configuration outside the model repository.
+
+
+To export the maze webpage as a shareable MP4:
+
+```bash
+node scripts/capture_side_by_side_video.mjs \
+  --web-root web --output runs/maze_video --work runs/maze_video_frames \
+  --playwright-module /path/to/playwright/index.mjs \
+  --ffmpeg /path/to/ffmpeg --chrome /path/to/chrome
+```
+
+The video keeps all three systems on the same environment-step timeline and pauses briefly at goal arrivals. It includes the complete run through the last system's final state. The output directory contains the MP4 and its recording manifest; existing video files are never overwritten.
 
 ## Maze + Snake: open the decision arcade
 
