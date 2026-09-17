@@ -4,7 +4,19 @@
 
 **一个 0.6B 并行决策模型：输入状态与问题，直接得到完整概率分布，无需生成答案 token。**
 
-[模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data) · [迷宫 + 贪吃蛇：打开决策游戏厅](web/arcade.html)
+[模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+
+**[打开在线三栏对照演示 →](https://nanojev.tianyuchen99.chatgpt.site)**
+
+## 三个模型，同一场游戏
+
+[![Jev、NanoJev 与原始 Qwen 并排运行贪吃蛇](assets/side_by_side_snake.png)](https://nanojev.tianyuchen99.chatgpt.site/#snake)
+
+[打开贪吃蛇](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [探索 50×50 迷宫](https://nanojev.tianyuchen99.chatgpt.site/#maze) · [真实来源与回放核验](assets/side_by_side_data_manifest.json)
+
+独立的 ChatGPT Sites 网站以浅色三栏展示 **Jev、NanoJev 和原始 Qwen**。三个画面按同一环境步推进，已经结束的对局停留在真实终局。概率条展示产生当前画面的最后一次决策；各系统均包含共同的代码规划部分。
+
+新版迷宫对照使用真实的原始 Qwen3-0.6B：**4,726 次尝试、2,044 次碰撞后到达目标**。下方旧迷宫视频继续保留原来的**起始 NanoJev** 对照与实测数字。
 
 ## 真实对局实录
 
@@ -94,7 +106,7 @@
 
 [完整训练与运行手册（English）](research/pipeline_runbook.md)
 
-## 快速体验决策游戏厅
+## 快速体验三栏对照
 
 交互回放只需 Python：
 
@@ -104,7 +116,7 @@ cd NanoJev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-打开 **http://127.0.0.1:8080/arcade.html**，播放迷宫与贪吃蛇实录，查看模型判断并逐步检查真实动作。此前的对照页面保留在 **http://127.0.0.1:8080/comparison.html**。
+打开 **http://127.0.0.1:8080/side-by-side.html**，并排播放贪吃蛇与迷宫的三方实录。深色游戏厅保留在 **http://127.0.0.1:8080/arcade.html**，此前的导航对照页面位于 **http://127.0.0.1:8080/comparison.html**。
 
 ## 下载演示使用的模型
 

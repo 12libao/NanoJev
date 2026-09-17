@@ -2,15 +2,43 @@
 
 **A nano replica of [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev).** The English interface reads recorded model results from local JSON files. It uses plain HTML, CSS, and JavaScript, with no framework or external scripts.
 
+**[Open the standalone side-by-side site](https://nanojev.tianyuchen99.chatgpt.site)** · [Snake](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [Maze](https://nanojev.tianyuchen99.chatgpt.site/#maze)
+
 From the repository root:
 
 ```bash
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-Open **http://127.0.0.1:8080/arcade.html** for the new maze and Snake arcade. The earlier comparison remains at `http://127.0.0.1:8080/comparison.html`, and the decision lab is at `http://127.0.0.1:8080`. Serve only the `web` directory. Opening the HTML as a local file can prevent JSON loading.
+Open **http://127.0.0.1:8080/side-by-side.html** for the light three-panel comparison. Add `#snake` or `#maze` to open a game directly. The dark arcade remains at `http://127.0.0.1:8080/arcade.html`, the earlier comparison at `http://127.0.0.1:8080/comparison.html`, and the decision lab at `http://127.0.0.1:8080`. Serve only the `web` directory. Opening the HTML as a local file can prevent JSON loading.
 
 The main viewer offers model and episode selection, step controls, playback, action probabilities, recorded execution details, and parallel batches. V2 and V3 have different evaluation cohorts; their summaries remain separate. Sampled controllers display the action that was actually taken, including when it differs from the most probable action. Completed trajectories hold their final state.
+
+## Light side-by-side comparison
+
+[![The three-system Snake replay](../assets/side_by_side_snake.png)](https://nanojev.tianyuchen99.chatgpt.site/#snake)
+
+`side-by-side.html` reads `side_by_side_results.json` and displays **Jev / NanoJev / Untuned Qwen** together. All panels advance by the same environment step. Each completed run freezes at its recorded final state while the others continue. Each frame's probability bars describe the last decision that produced that state; frame zero has no decision probabilities.
+
+The maze uses four independent safety probabilities without normalizing them across directions. Shared exploration code orders edges and repositions through verified paths. Its real native-Qwen baseline reaches the goal in **4,726 attempts with 2,044 collisions**. The original dark arcade still contains the separate **Starting NanoJev** run: 171 attempts and 43 collisions.
+
+Snake uses conditional probabilities over the candidates offered by the common safety and food planner. A single remaining candidate is a forced code move. Its three complete runs remain unchanged: NanoJev collects 27 food over 256 steps, Jev 30 over 256, and Untuned Qwen 25 over 211 before becoming trapped. [Source identities, hashes, and replay checks](../assets/side_by_side_data_manifest.json).
+
+Rebuild the separate comparison data from its recorded sources:
+
+```bash
+python3 scripts/build_side_by_side_demo.py --overwrite
+```
+
+This performs CPU replay checks and leaves the old arcade data and media unchanged. The source files listed in the manifest must be available locally, including the native maze result and the three selected Snake reports.
+
+To stage the standalone static website, pass an existing ChatGPT Sites project whose `.openai/hosting.json` already defines `static.directory` as `dist`:
+
+```bash
+python3 scripts/stage_comparison_site.py --project /path/to/site-project
+```
+
+The staging script copies the comparison page, styling, script, and recorded data into that project's `dist/` directory, using the comparison page as `index.html`. It also records the staged file hashes. The separate project keeps hosting configuration outside the model repository.
 
 ## Maze + Snake: open the decision arcade
 
@@ -121,7 +149,20 @@ node --check web/comparison.js
 node --check scripts/capture_comparison.mjs
 node --check web/arcade.js
 node --check scripts/capture_arcade.mjs
+node --check web/side-by-side.js
+node --check scripts/check_side_by_side.mjs
 python3 scripts/test_composed_snake.py
 ```
+
+The side-by-side browser check compares the displayed states with the exact recording JSON, exercises playback controls, and checks desktop and mobile layouts:
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs \
+CHROME_EXECUTABLE=/path/to/chrome \
+node scripts/check_side_by_side.mjs \
+  --web-root web --output-dir runs/comparison_check
+```
+
+Replace `--web-root web` with `--url https://nanojev.tianyuchen99.chatgpt.site/` to check the public site in an isolated browser. Use a new output directory for each run. [Published-site browser results](../assets/side_by_side_browser_check.json).
 
 The exported media and viewer were checked with isolated, unsigned-in Chrome 153 and Playwright 1.63. Detailed results are in [the playback check](../assets/comparison_playback_check.json) and [the media manifest](../assets/comparison_media_manifest.json). FFmpeg 7.1 encodes the H.264/yuv420p MP4 files; Pillow is used only for optional GIF frame inspection.

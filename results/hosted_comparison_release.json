@@ -1,0 +1,22 @@
+{
+  "schema": "nanojev-comparison-site-release-v1",
+  "url": "https://nanojev.tianyuchen99.chatgpt.site",
+  "access_mode": "public",
+  "version_number": 2,
+  "source_commit_sha": "63494600dc6ebac4cf677a54b3b27eb527760476",
+  "status": "succeeded",
+  "published_at": "2026-09-17T23:02:44.159632+00:00",
+  "recording_sha256": "33b0ef7d3224d98b7b608a7a4a20577ba01a5311874658e4f474cba11f343168",
+  "data_manifest": "assets/side_by_side_data_manifest.json",
+  "browser_check": "assets/side_by_side_browser_check.json",
+  "asset_check": "assets/side_by_side_live_assets_check.json",
+  "scenes": [
+    "snake",
+    "maze"
+  ],
+  "systems": [
+    "Jev",
+    "NanoJev",
+    "Untuned Qwen"
+  ]
+}

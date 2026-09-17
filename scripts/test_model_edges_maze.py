@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 
 import evaluate_model_edges_maze as runner
+from evaluate_native_qwen_maze import NativeBooleanPredictor
 from evaluate_composed_maze import ReferenceDiagnostics
 import scaled_maze as maze
 
@@ -162,6 +163,52 @@ class ExplorationTests(unittest.TestCase):
         for a, b in zip(first["episodes"], second["episodes"]):
             self.assertEqual(a["steps"], b["steps"])
             self.assertEqual(a["observations"], b["observations"])
+
+
+class NativeBooleanAdapterTests(unittest.TestCase):
+    def test_independent_boolean_mapping_batch_and_native_receipts(self):
+        public = runner.render_local_request(maze.make_maze(8, 77, "tree"))
+        payload = {"states": [{"id": "first", **public}, {"id": "second", **public}]}
+        class FakeNative:
+            def predict(inner, request, **kwargs):
+                self.assertEqual(kwargs, {"batch_questions": 0, "temperature": 1.0})
+                self.assertEqual(len(request["states"]), 8)
+                rows = []
+                for index, row in enumerate(request["states"]):
+                    question = row["questions"]["action"]
+                    self.assertEqual(question["type"], "choice")
+                    self.assertEqual(list(question["criteria"]), ["false", "true"])
+                    original = list(public["questions"].values())[index % 4]
+                    self.assertEqual(question["instructions"], original["instructions"])
+                    self.assertEqual(question["criteria"], original["criteria"])
+                    self.assertEqual(row["state"], public["state"])
+                    p = .1 + .1 * index
+                    rows.append({"id": row["id"], "answers": {"action": {"type": "choice",
+                        "probabilities": {"false": 1-p, "true": p},
+                        "candidate_to_token": {"false": {"text": "A", "id": 32}, "true": {"text": "B", "id": 33}},
+                        "native_option_logits": {"false": -1.0, "true": 1.0}, "offered_token_mass": .02}}})
+                return {"states": list(reversed(rows)), "execution": {"forward_passes": 1, "network_model_calls": 0}}
+        response = NativeBooleanPredictor(FakeNative()).predict(payload)
+        self.assertEqual(response["execution"]["forward_passes"], 1)
+        self.assertEqual(response["execution"]["boolean_questions"], 8)
+        first = response["states"][0]["answers"]
+        self.assertAlmostEqual(first["clear_north"]["p_true"], .1)
+        self.assertAlmostEqual(first["clear_west"]["p_true"], .4)
+        self.assertEqual(first["clear_north"]["target_kind"], "native_token_conditional_probabilities")
+        self.assertEqual(first["clear_north"]["offered_token_mass"], .02)
+        self.assertEqual(first["clear_north"]["candidate_to_token"]["true"]["text"], "B")
+
+    def test_native_adapter_rejects_nonunit_outputs(self):
+        class BadNative:
+            def predict(inner, request, **kwargs):
+                return {"states": [{"id": row["id"], "answers": {"action": {
+                    "type": "choice", "probabilities": {"false": .8, "true": .8}}}} for row in request["states"]]}
+        public = runner.render_local_request(maze.make_maze(8, 77, "tree"))
+        adapter = NativeBooleanPredictor(BadNative())
+        with self.assertRaises(ValueError):
+            adapter.predict({"states": [{"id": "case", **public}]})
+        with self.assertRaises(ValueError):
+            adapter.predict({"states": [{"id": "case", **public}]}, temperature=.5)
 
 
 if __name__ == "__main__":

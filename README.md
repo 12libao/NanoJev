@@ -4,7 +4,19 @@
 
 **A 0.6B parallel decision model. States and questions in, complete probability distributions out—with zero output-token decoding.**
 
-[Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data) · [Maze + Snake: open the decision arcade](web/arcade.html)
+[Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+
+**[Open the live side-by-side demo →](https://nanojev.tianyuchen99.chatgpt.site)**
+
+## Three models, one game
+
+[![Jev, NanoJev, and Untuned Qwen playing Snake side by side](assets/side_by_side_snake.png)](https://nanojev.tianyuchen99.chatgpt.site/#snake)
+
+[Play Snake](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [Explore the 50×50 maze](https://nanojev.tianyuchen99.chatgpt.site/#maze) · [Recorded sources and replay checks](assets/side_by_side_data_manifest.json)
+
+The standalone ChatGPT Sites demo presents **Jev, NanoJev, and Untuned Qwen** in three light panels. Playback advances by the same environment step across panels; completed runs freeze at their actual final state. Probability bars show the last decision that produced the displayed state. Shared code planning remains part of each system.
+
+The new maze baseline is the original Qwen3-0.6B: **4,726 attempts, 2,044 collisions, goal reached**. The older maze video below keeps its original **Starting NanoJev** comparison and recorded results.
 
 ## Recorded showcase runs
 
@@ -95,7 +107,7 @@ Choice uses a shared scalar head and set attention. Boolean uses a single-path s
 
 [Complete pipeline commands](research/pipeline_runbook.md)
 
-## Quick start: decision arcade
+## Quick start: side-by-side replay
 
 The interactive replay runs with Python's built-in HTTP server:
 
@@ -105,7 +117,7 @@ cd NanoJev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-Open **http://127.0.0.1:8080/arcade.html** to play the maze and Snake recordings, inspect decisions, and step through the actual trajectories. The earlier benchmark viewer remains at **http://127.0.0.1:8080/comparison.html**.
+Open **http://127.0.0.1:8080/side-by-side.html** for the three-panel Snake and maze comparison. The dark arcade remains at **http://127.0.0.1:8080/arcade.html**, and the earlier benchmark viewer at **http://127.0.0.1:8080/comparison.html**.
 
 ## Download the showcase models
 
