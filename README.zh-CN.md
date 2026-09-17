@@ -2,6 +2,9 @@
 
 **简体中文** | [English](README.md)
 
+> 当前为 NanoJev 私有开发仓库。新增大迷宫、贪吃蛇与校准奖励实验，详见[英文开发说明](README.md)、[游戏流程](docs/SCALED_GAMES.md)和 [RLCD 实验](docs/RLCD_EXPERIMENT.md)。下方保留已发布基线的演示与结果。
+
+当前主线：[原子判断与代码规划](docs/ATOMIC_PLANNING.md)。局部模型在测试集和 50×50 保留集的准确率分别为 77.84% 和 76.56%；完整英文报告包含实际探索轨迹与 RLCD 对照。
 **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 的迷你复现：一个以 Qwen3-0.6B 为基础的并行决策模型。** 输入状态、问题和候选集合，直接得到全部决策的概率分布。
 
 NanoJev 将多个状态、多个问题和所有候选放进一次模型前向，无需逐 token 生成答案。项目提供数据生成、模型训练、评测、推理服务和可视化的完整流程。

@@ -204,6 +204,11 @@ def load_training_examples(path, tokenizer, max_length):
 
 
 def target_for(example, objective):
+    if objective == "observed_outcome":
+        i = example["gold_index"]
+        if example.get("gold_label_kind") != "observed_outcome" or i is None:
+            return None
+        return [float(j == i) for j in range(len(example["candidate_ids"]))]
     if objective == "teacher":
         return example["teacher_probs"]
     if objective == "gold_distribution":
@@ -266,7 +271,7 @@ def evaluate_pipeline(model, examples, pad_token, args, objective, path=None):
     from train_toy_decisions import prediction_record
     model.eval()
     rows, totals, count, kinds = [], {k: 0.0 for k in ("ce", "kl", "tv")}, 0, {}
-    all_targets = {name: {"n": 0, "ce": 0.0, "kl": 0.0, "tv": 0.0} for name in ("teacher", "gold_distribution")}
+    all_targets = {name: {"n": 0, "ce": 0.0, "kl": 0.0, "tv": 0.0} for name in ("teacher", "gold_distribution", "observed_outcome")}
     with torch.inference_mode():
         for group in pack_complete_questions(examples, args.microbatch_questions, args.max_microbatch_tokens):
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=args.precision == "bf16"):
@@ -289,7 +294,8 @@ def evaluate_pipeline(model, examples, pad_token, args, objective, path=None):
                 count += 1
                 for key in totals:
                     totals[key] += metrics[key]
-                kind = (ex.get("gold_probs_kind") or "hard_gold_one_hot") if objective == "gold_distribution" else "teacher_rounded_proxy"
+                kind = ((ex.get("gold_probs_kind") or "hard_gold_one_hot") if objective == "gold_distribution"
+                        else "observed_outcome" if objective == "observed_outcome" else "teacher_rounded_proxy")
                 bucket = kinds.setdefault(kind, {"n": 0, "ce": 0.0, "kl": 0.0, "tv": 0.0})
                 bucket["n"] += 1
                 for key in totals:
@@ -382,7 +388,10 @@ def main():
     p.add_argument("--model", default="Qwen/Qwen3-0.6B")
     p.add_argument("--revision", default="main")
     p.add_argument("--init-checkpoint", help="Local DecisionModel warm start; optimizer is new, not an exact training resume")
-    p.add_argument("--objective", choices=["teacher", "gold_distribution"], default="gold_distribution")
+    p.add_argument("--objective", choices=["teacher", "gold_distribution", "observed_outcome"], default="gold_distribution")
+    p.add_argument("--loss", choices=["ce", "brier", "paired_brier_pg"], default="ce")
+    p.add_argument("--reward-samples", type=int, default=32)
+    p.add_argument("--gradient-checkpointing", action="store_true", help="Reduce activation memory for complete long maze inputs")
     p.add_argument("--set-head", choices=["none", "attention"], help="Defaults to attention, or the warm-start checkpoint's setting")
     p.add_argument("--steps", type=int, default=300)
     p.add_argument("--head-steps", type=int, help="Defaults to12 for a new head and0 for a checkpoint warm start")
@@ -400,6 +409,10 @@ def main():
     p.add_argument("--validate-only", action="store_true", help="Stdlib schema/split/target audit only, no tokenizer/GPU")
     p.add_argument("--self-check", action="store_true", help="CPU-only necessary schema/numerical checks; no model download")
     args = p.parse_args()
+    if args.reward_samples < 2:
+        p.error("--reward-samples must be >= 2")
+    if args.loss == "paired_brier_pg" and args.objective != "observed_outcome":
+        p.error("paired_brier_pg requires --objective observed_outcome")
     if args.self_check:
         self_check()
         return
@@ -454,6 +467,8 @@ def main():
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
     model.backbone.config.use_cache = False
+    if args.gradient_checkpointing:
+        model.backbone.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
     if args.max_length > getattr(model.backbone.config, "max_position_embeddings", args.max_length):
         raise ValueError("Requested max_length exceeds backbone context limit")
     examples, audit = load_training_examples(args.input, tokenizer, args.max_length)
@@ -481,7 +496,8 @@ def main():
               "parameter_count": sum(t.numel() for t in model.parameters()),
               "train_questions": len(train), "all_train_questions": len(splits["train"]),
               "schema_counts": data_schema_summary(records),
-              "loss": "per-question forward soft CE, equal question weight; complete candidate normalization",
+              "loss_description": "equal question weight; complete candidate normalization; sampled loss is a score-function surrogate" if args.loss == "paired_brier_pg" else "per-question proper loss; complete candidate normalization",
+              "rlcd_candidate": "independent paired categorical proper-reward policy gradient" if args.loss == "paired_brier_pg" else None,
               "selection": "minimum dev target CE; held-out test first evaluated after training and checkpoint selection",
               "parallelism": "complete candidate paths batched in one backbone call per microbatch; no prefix sharing"}
     dump(out / "config.json", config); dump(out / "target_audit.json", audit)
@@ -493,6 +509,8 @@ def main():
     optimizer = torch.optim.AdamW([{"params": body, "lr": args.backbone_lr}, {"params": head, "lr": args.head_lr}], weight_decay=.01)
     best, best_step, logs = float("inf"), None, []
     started = time.perf_counter()
+    from calibrated_objectives import grouped_calibrated_loss
+    reward_generator = torch.Generator(device="cuda").manual_seed(args.seed + 104729)
     torch.cuda.reset_peak_memory_stats()
     for step in range(args.head_steps + args.steps):
         warm = step < args.head_steps
@@ -507,7 +525,8 @@ def main():
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=args.precision == "bf16"):
                 logits, _ = model(group, tokenizer.pad_token_id)
                 # A single denominator for the full optimizer update, regardless of microbatch sizes or K.
-                loss = grouped_target_loss(logits, group, args.objective).sum() / len(batch)
+                loss = grouped_calibrated_loss(logits, group, args.objective, args.loss,
+                                              args.reward_samples, reward_generator).sum() / len(batch)
             if not torch.isfinite(loss):
                 raise RuntimeError("Nonfinite loss")
             loss.backward(); loss_sum += float(loss.detach())

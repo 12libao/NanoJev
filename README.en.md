@@ -2,6 +2,49 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
+> Private development repository for NanoJev. The [release repository](https://github.com/TianyuCodings/NanoJev) remains separate.
+
+## Current development
+
+- **Larger mazes:** complete 8×8, 16×16, 32×32, and 50×50 boards, four maze topologies, multiple positions per map, and configurable larger sizes.
+- **Atomic judgments + code planning:** matched 5×5 local training inputs, parallel directional judgments, and model-guided edge exploration with movement memory.
+- **Snake:** reproducible food generation, body growth, collision and tail-movement rules, action choices, and parallel safety questions.
+- **Calibrated rewards:** an implemented paired-sample policy-gradient objective, direct CE/Brier controls, exact gradient checks, and real Qwen3-0.6B training runs.
+- **End-to-end evaluation:** frozen game cohorts, live [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) comparisons, map-separated datasets, and independently verified trajectory replay.
+
+Start with [atomic planning](docs/ATOMIC_PLANNING.md), the [scaled-game pipeline](docs/SCALED_GAMES.md), [RLCD experiment](docs/RLCD_EXPERIMENT.md), [TypeSafe input contract](docs/TYPESAFE_CONTRACT.md), and [Fable review](docs/FABLE_REVIEW.md).
+
+```bash
+git clone https://github.com/TianyuCodings/NanoJev-dev.git
+cd NanoJev-dev
+```
+
+### Probability-learning pilot
+
+From the released NanoJev checkpoint, each training arm uses the same observed events and 100 updates. Probability error is `sum((p - q)^2)` against the simulator's exact event distribution; lower is better.
+
+| Model / objective | Held-out test, 364 events | 50×50 OOD, 128 events |
+|---|---:|---:|
+| NanoJev starting checkpoint | 0.27708 | 0.31995 |
+| Observed-outcome CE | 0.12423 | 0.07250 |
+| Direct Brier | 0.13844 | 0.06719 |
+| Paired proper reward | **0.11844** | **0.06202** |
+
+This seed-17 pilot measures one-step events under a specified random actuator. The [experiment report](docs/RLCD_EXPERIMENT.md) includes event coverage, NLL/Brier, the separate three-seed algorithm benchmark, and the complete reward definition. The [game results](docs/DEVELOPMENT_RESULTS.md) use their own fixed closed-loop protocol.
+
+### Local-judgment pilot
+
+The new local model learns four directional safety questions from 300 maze snapshots, preserving map-separated splits. It processes a 5×5 observation at every board size.
+
+| Local geometry questions | Test, 176 questions | 50×50 OOD, 64 questions |
+|---|---:|---:|
+| Constant true | 56.25% | 56.25% |
+| **Locally trained NanoJev** | **77.84%** | **76.56%** |
+
+On a separate identical 68-question route audit, starting NanoJev scores 64.71%, the locally trained model 75.00%, and [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 76.47%. See the [atomic training and planning report](docs/ATOMIC_PLANNING.md) and [model-guided exploration results](docs/MODEL_EDGE_RESULTS.md) for full probabilities, actual collisions, and completion measurements.
+
+## Released baseline
+
 **A 0.6B parallel decision model that turns states and questions into complete probability distributions.**
 
 Give NanoJev multiple states, multiple questions, and dynamic candidate sets. It evaluates them in one batched backbone forward pass and returns structured decisions with **zero output-token decoding**.
@@ -122,5 +165,7 @@ The [pipeline runbook](research/pipeline_runbook.md) includes data generation, t
 
 ## Roadmap
 
-- [ ] **Scale up data** — Add Training Data to more diverse tasks.
-- [ ] **RLCD** — Add Reinforcement Learning for Calibrated Decisions to the training pipeline.
+- [x] **Scale up data** — Add larger mazes, Snake, atomic questions, and observed-event datasets.
+- [x] **Calibrated reward prototype** — Implement and test paired proper-reward learning with CE/Brier controls.
+- [ ] **RLCD expansion** — Add broader semantic tasks, stochastic long-horizon events, and additional model seeds.
+- [ ] **Structured input support** — Version the encoder for structured instructions, criteria, and the native Noul interface.
