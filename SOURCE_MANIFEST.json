@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "created_at_utc": "2026-09-17T22:08:18.756608+00:00",
-  "operation": "private_development_snapshot",
+  "created_at_utc": "2026-09-17T22:34:07.174890+00:00",
+  "operation": "public_release_snapshot",
   "parent_release_commit": "614b302a069a648f4cdd00e447d57683d26db39c",
-  "file_count": 260,
-  "total_bytes": 182791740,
+  "file_count": 263,
+  "total_bytes": 182810438,
   "files": [
     {
       "path": ".env.example",
@@ -32,24 +32,24 @@
     },
     {
       "path": "README.en.md",
-      "bytes": 8334,
-      "sha256": "b568a9065b8ad5adfb2d9c6e4b3fd8e95aa87759546d6595ab3076ecdde48159",
+      "bytes": 9451,
+      "sha256": "782009251fc9ffbe7b5ab420c7a27a78606842eb2cd44587f71555b81532c990",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.md",
-      "bytes": 8334,
-      "sha256": "b568a9065b8ad5adfb2d9c6e4b3fd8e95aa87759546d6595ab3076ecdde48159",
+      "bytes": 9451,
+      "sha256": "782009251fc9ffbe7b5ab420c7a27a78606842eb2cd44587f71555b81532c990",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
     },
     {
       "path": "README.zh-CN.md",
-      "bytes": 7563,
-      "sha256": "ffc786368b77aefe45bc3e65662655a32f32325bead777b05674aee026d839de",
+      "bytes": 8530,
+      "sha256": "08c7dba0abb61c38f045d1ab79dd8c43a430477e9ca6a70d446ef248506936b7",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
@@ -187,8 +187,8 @@
       "category": "authored_documentation",
       "provenance": "Project-authored development documentation and measured experiment reports.",
       "license_scope": "MIT for authored text; third-party material retains its rights",
-      "bytes": 5808,
-      "sha256": "7ff5e82bf7c17a3b0c95c5abfba5ec6d1b035cea7a88b1dfc69abd7ddd796e9f"
+      "bytes": 6092,
+      "sha256": "6ad357831c3d5a477687300f1479ecf4f60428801a617dc57e32d38a0784bccd"
     },
     {
       "path": "docs/DEVELOPMENT_RESULTS.md",
@@ -207,6 +207,14 @@
       "sha256": "ebd043baca51e407e1966a24e927c38868ab06f17aeb1a1dbd6023c73ed3544f"
     },
     {
+      "path": "docs/GAME_RELEASE.md",
+      "category": "authored_documentation",
+      "provenance": "Project-authored development documentation and measured experiment reports.",
+      "license_scope": "MIT for authored text; third-party material retains its rights",
+      "bytes": 6167,
+      "sha256": "e7a3b653f558b401853296ca94913c59ae001923156baec95c524536dfe414a8"
+    },
+    {
       "path": "docs/MODEL_EDGE_RESULTS.md",
       "category": "authored_documentation",
       "provenance": "Project-authored development documentation and measured experiment reports.",
@@ -219,16 +227,16 @@
       "category": "authored_documentation",
       "provenance": "Project-authored development documentation and measured experiment reports.",
       "license_scope": "MIT for authored text; third-party material retains its rights",
-      "bytes": 11855,
-      "sha256": "2ce4af72f1bc8fa33f040240370a23e435d7e13c20f74f953cb7076619268235"
+      "bytes": 11848,
+      "sha256": "a6902cc74cf8ab5126498585dc0536907380eb4dec3af87e9d80bf4b9ddb4fa9"
     },
     {
       "path": "docs/SCALED_GAMES.md",
       "category": "authored_documentation",
       "provenance": "Project-authored development documentation and measured experiment reports.",
       "license_scope": "MIT for authored text; third-party material retains its rights",
-      "bytes": 11383,
-      "sha256": "e541f6127c1972c075da395b41572a9ac744a72712f5fd17744cbd404ad8a7ce"
+      "bytes": 11437,
+      "sha256": "9936115c41efb265fd11813f4ebd715c67f1f2c1fb50c118cea6c4a33e4e216a"
     },
     {
       "path": "docs/TYPESAFE_CONTRACT.md",
@@ -728,8 +736,8 @@
     },
     {
       "path": "research/pipeline_runbook.md",
-      "bytes": 18266,
-      "sha256": "e2c9561ca3db0e68555ea1db78a6a2153aa3496d476feb46113b8ae264229a2b",
+      "bytes": 18417,
+      "sha256": "693fa5836c3b5c0d4e12028d167b003d23e094da212c36283cc90c636a3fa1f9",
       "category": "authored_documentation",
       "provenance": "Project-authored documentation and analysis; external sources remain attributed.",
       "license_scope": "MIT for authored text; third-party material retains its rights"
@@ -1159,6 +1167,22 @@
       "sha256": "6ad3233b6456f56d8c08df72fd032317dea479410d07b28003826daeea526fe0"
     },
     {
+      "path": "results/hosted_game_bundle_smoke.json",
+      "category": "development_experiment_evidence",
+      "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
+      "bytes": 1658,
+      "sha256": "5f1b4cf0b19eaeda7dcc5e4f9d3a98073e8046307a1fc3606cb359c3ca52f6eb"
+    },
+    {
+      "path": "results/huggingface_games_release.json",
+      "category": "development_experiment_evidence",
+      "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
+      "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
+      "bytes": 4958,
+      "sha256": "5fcec7538e1c35b60f830a5daaec718f337b3f032a597d29e312cc047808456a"
+    },
+    {
       "path": "results/jev_preflight.json",
       "category": "development_experiment_evidence",
       "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
@@ -1355,8 +1379,8 @@
       "category": "development_experiment_evidence",
       "provenance": "Recorded development inputs, model outputs, training receipts, metrics, and reproducibility checks.",
       "license_scope": "authored environment data/code: CC0-1.0/MIT; external model outputs/marks retain applicable rights",
-      "bytes": 356341,
-      "sha256": "26730d68a30ffd317a114e7d1e20d36ba65d3a1d5bed68acdfebe8d54f203c29"
+      "bytes": 358066,
+      "sha256": "793290ccef7833cff8b2f8f690b0eb95bf3adb9551f88897bd0766db48def0f2"
     },
     {
       "path": "scripts/assemble_navigation_v3_views.py",
@@ -1795,8 +1819,8 @@
       "category": "authored_source",
       "provenance": "Project-authored implementation and validation code.",
       "license_scope": "MIT",
-      "bytes": 9644,
-      "sha256": "3ea9e0512b5c7748a4dfb0b77defced8ffdfd97f493fd7e9ca420aa4e9d0a652"
+      "bytes": 10151,
+      "sha256": "b81ea3473b308aa7635db7f7c7355368479261c0905a45c53d0dd0a57e957307"
     },
     {
       "path": "scripts/summarize_development_results.py",

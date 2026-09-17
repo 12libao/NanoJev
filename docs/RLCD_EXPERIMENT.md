@@ -68,7 +68,7 @@ The summary checks both `gold_probs_kind=programmatic_conditional_distribution` 
 
 ## Reproduction: frozen input to complete report
 
-Run from the private dev repository. Use the versions in `requirements-toy.txt` and a CUDA device for the Qwen stage; the mathematical and MLP checks run on CPU. The five frozen files under `data/scaled_games_v4/events/` must match each run's `config.json:data_sha256` and the dataset manifest. `build_scaled_games.py` and `game_outcomes.py` implement environment snapshots, visible requests, observed labels, and exact references; do not silently substitute regenerated data after changing those sources.
+Run from the repository root. Use the versions in `requirements-toy.txt` and a CUDA device for the Qwen stage; the mathematical and MLP checks run on CPU. The five frozen files under `data/scaled_games_v4/events/` must match each run's `config.json:data_sha256` and the dataset manifest. `build_scaled_games.py` and `game_outcomes.py` implement environment snapshots, visible requests, observed labels, and exact references; do not silently substitute regenerated data after changing those sources.
 
 ```bash
 python scripts/test_calibrated_objectives.py --mc-repeats 2000 --output results/calibrated_objectives_check.json

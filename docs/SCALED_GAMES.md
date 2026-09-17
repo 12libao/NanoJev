@@ -1,6 +1,6 @@
 # Scaled maze and Snake pipeline
 
-Run commands from the repository root, using new data/output directories for new experiments. Data generation and environment tests use Python's standard library. GPU training/inference require CUDA, the packages in [requirements-toy.txt](../requirements-toy.txt), and a local checkpoint at `checkpoints/NanoJev`; checkpoint download and environment setup are in the [pipeline runbook](../research/pipeline_runbook.md). API labeling additionally needs Node.js 22+, `npm ci`, and a locally configured `.env`.
+Run commands from the repository root, using new data/output directories for new experiments. Data generation and environment tests use Python's standard library. GPU training/inference require CUDA, the packages in [requirements-toy.txt](../requirements-toy.txt), and a local checkpoint at `checkpoints/NanoJev`; checkpoint download and environment setup are in the [pipeline runbook](../research/pipeline_runbook.md). API reference collection additionally needs Node.js 22+, `npm ci`, and a locally configured `.env`.
 
 ## Environments and question semantics
 
@@ -40,9 +40,9 @@ python3 -m unittest discover -s scripts -p test_snake_game.py -v
 python3 -m unittest discover -s scripts -p test_question_contract.py -v
 ```
 
-## 2. Add optional Jev labels, then freeze
+## 2. Collect optional API reference data, then freeze
 
-The programmatic `gold`/`gold_probs` path works without API calls. For a separate API-reference run, label the policy directory only:
+The programmatic `gold`/`gold_probs` path works without API calls. For a separate API-reference run, collect reference distributions for the policy directory only:
 
 ```bash
 npm ci

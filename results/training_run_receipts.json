@@ -1,6 +1,6 @@
 {
   "schema": "nanojev-training-run-receipts-v1",
-  "checkpoint_storage": "User-provided training server; new development weights are separate from the released Hugging Face checkpoint.",
+  "checkpoint_storage": "Public Hugging Face repository C-Tianyu/NanoJev; six complete checkpoints under variants/. The original root checkpoint remains available.",
   "runs": [
     {
       "run": "events_ce_seed17",
@@ -1172,7 +1172,13 @@
             "note": "question-mean distribution recovery; policy targets and reference argmax labels are not observed outcomes"
           }
         }
-      ]
+      ],
+      "hosted_checkpoint": {
+        "repository": "C-Tianyu/NanoJev",
+        "revision": "4a19595eada0857133c0d2be024f879a4077054b",
+        "path": "variants/events_ce_seed17",
+        "weight_sha256": "582c01139e29807b5f2690335271cf5647583cbfc3dd963d5967792bb3963992"
+      }
     },
     {
       "run": "events_brier_seed17",
@@ -2344,7 +2350,13 @@
             "note": "question-mean distribution recovery; policy targets and reference argmax labels are not observed outcomes"
           }
         }
-      ]
+      ],
+      "hosted_checkpoint": {
+        "repository": "C-Tianyu/NanoJev",
+        "revision": "4a19595eada0857133c0d2be024f879a4077054b",
+        "path": "variants/events_brier_seed17",
+        "weight_sha256": "0a8d8b14c97743eed4310d461a7ae5cff0400cb87eaa6dc1f8c5dc3c59988651"
+      }
     },
     {
       "run": "events_paired_seed17",
@@ -3516,7 +3528,13 @@
             "note": "question-mean distribution recovery; policy targets and reference argmax labels are not observed outcomes"
           }
         }
-      ]
+      ],
+      "hosted_checkpoint": {
+        "repository": "C-Tianyu/NanoJev",
+        "revision": "4a19595eada0857133c0d2be024f879a4077054b",
+        "path": "variants/events_paired_seed17",
+        "weight_sha256": "bbefcf829b9e36253ef46ab076f7d8fca00ffb33762e8358dbe780b3605bb777"
+      }
     },
     {
       "run": "games_gold_seed17",
@@ -5211,7 +5229,13 @@
             "note": "question-mean distribution recovery; policy targets and reference argmax labels are not observed outcomes"
           }
         }
-      ]
+      ],
+      "hosted_checkpoint": {
+        "repository": "C-Tianyu/NanoJev",
+        "revision": "4a19595eada0857133c0d2be024f879a4077054b",
+        "path": "variants/games_gold_seed17",
+        "weight_sha256": "5a395c56fad2a9bd4fb664ef78e1e06c19102886d97dd56dfe2676e5896c7e3a"
+      }
     },
     {
       "run": "games_api_seed17",
@@ -6869,7 +6893,13 @@
             "note": "question-mean distribution recovery; policy targets and reference argmax labels are not observed outcomes"
           }
         }
-      ]
+      ],
+      "hosted_checkpoint": {
+        "repository": "C-Tianyu/NanoJev",
+        "revision": "4a19595eada0857133c0d2be024f879a4077054b",
+        "path": "variants/games_api_seed17",
+        "weight_sha256": "45829fc896391847220b67dcf6fc0702427d2f184be384649bcf9343c1552477"
+      }
     },
     {
       "run": "local_atomic_seed17",
@@ -10025,7 +10055,13 @@
             "note": "question-mean distribution recovery; policy targets and reference argmax labels are not observed outcomes"
           }
         }
-      ]
+      ],
+      "hosted_checkpoint": {
+        "repository": "C-Tianyu/NanoJev",
+        "revision": "4a19595eada0857133c0d2be024f879a4077054b",
+        "path": "variants/local_atomic_seed17",
+        "weight_sha256": "2b06e4423861f47da7ca53ad9c23a26aebdbfe79de3a238b36c2954ae9c6abf0"
+      }
     }
   ]
 }

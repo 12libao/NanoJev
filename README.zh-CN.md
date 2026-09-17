@@ -99,23 +99,45 @@
 交互回放只需 Python：
 
 ```bash
-git clone https://github.com/TianyuCodings/NanoJev-dev.git
-cd NanoJev-dev
+git clone https://github.com/TianyuCodings/NanoJev.git
+cd NanoJev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
 打开 **http://127.0.0.1:8080/arcade.html**，播放迷宫与贪吃蛇实录，查看模型判断并逐步检查真实动作。此前的对照页面保留在 **http://127.0.0.1:8080/comparison.html**。
 
+## 下载演示使用的模型
+
+| 用途 | [模型仓库](https://huggingface.co/C-Tianyu/NanoJev/tree/main/variants)中的检查点 |
+|---|---|
+| **50×50 迷宫演示** | `variants/local_atomic_seed17` |
+| **Snake 演示** | `variants/games_gold_seed17` |
+| 整图问题对照 | `variants/games_api_seed17` |
+| 校准决策实验 | `variants/events_ce_seed17`、`variants/events_brier_seed17`、`variants/events_paired_seed17` |
+
+```python
+from pathlib import Path
+from huggingface_hub import snapshot_download
+
+variant = "local_atomic_seed17"  # Snake 使用 "games_gold_seed17"。
+snapshot = snapshot_download(
+    repo_id="C-Tianyu/NanoJev",
+    allow_patterns=[f"variants/{variant}/*"],
+)
+checkpoint_dir = Path(snapshot) / "variants" / variant
+```
+
+[游戏数据包](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data/tree/main/games_v4)包含匹配的训练分区、固定评测输入和全部六组 Snake 控制器实录。[下载、校验与复现命令](docs/GAME_RELEASE.md)。
+
 ## 下载并运行模型
 
-在兼容 CUDA 的环境中安装 [Python 依赖](requirements-toy.txt)，并登录有权访问模型与数据集的 Hugging Face 账号：
+模型和数据集均可公开下载。在兼容 CUDA 的环境中安装 [Python 依赖](requirements-toy.txt)：
 
 ```bash
 python -m pip install -r requirements-toy.txt
-hf auth login
 ```
 
-下载已发布 checkpoint 和数据集。文件筛选仅获取模型根目录的最终 checkpoint：
+下载基础 checkpoint 和数据集。根目录权重对应此前的导航版本，也是后续训练的初始化模型：
 
 ```python
 from huggingface_hub import snapshot_download

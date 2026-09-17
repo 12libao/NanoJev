@@ -100,23 +100,45 @@ Choice uses a shared scalar head and set attention. Boolean uses a single-path s
 The interactive replay runs with Python's built-in HTTP server:
 
 ```bash
-git clone https://github.com/TianyuCodings/NanoJev-dev.git
-cd NanoJev-dev
+git clone https://github.com/TianyuCodings/NanoJev.git
+cd NanoJev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
 Open **http://127.0.0.1:8080/arcade.html** to play the maze and Snake recordings, inspect decisions, and step through the actual trajectories. The earlier benchmark viewer remains at **http://127.0.0.1:8080/comparison.html**.
 
+## Download the showcase models
+
+| Use | Checkpoint in [C-Tianyu/NanoJev](https://huggingface.co/C-Tianyu/NanoJev/tree/main/variants) |
+|---|---|
+| **50×50 maze demo** | `variants/local_atomic_seed17` |
+| **Snake demo** | `variants/games_gold_seed17` |
+| Full-map comparison | `variants/games_api_seed17` |
+| Calibrated-decision experiments | `variants/events_ce_seed17`, `variants/events_brier_seed17`, `variants/events_paired_seed17` |
+
+```python
+from pathlib import Path
+from huggingface_hub import snapshot_download
+
+variant = "local_atomic_seed17"  # Select "games_gold_seed17" for Snake.
+snapshot = snapshot_download(
+    repo_id="C-Tianyu/NanoJev",
+    allow_patterns=[f"variants/{variant}/*"],
+)
+checkpoint_dir = Path(snapshot) / "variants" / variant
+```
+
+The [game data package](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data/tree/main/games_v4) contains the matching training splits, frozen evaluation inputs, and all six Snake controller recordings. [Download, verify, and reproduce the games](docs/GAME_RELEASE.md).
+
 ## Download and run the model
 
-Prepare a CUDA environment with the recorded [Python dependencies](requirements-toy.txt). Sign in with an account that has access to the model and dataset:
+The [model](https://huggingface.co/C-Tianyu/NanoJev) and [dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data) are public. Prepare a CUDA environment with the recorded [Python dependencies](requirements-toy.txt):
 
 ```bash
 python -m pip install -r requirements-toy.txt
-hf auth login
 ```
 
-Download the released checkpoint and dataset. The file selection retrieves only the root checkpoint:
+Download the base release checkpoint and dataset. The root checkpoint is the initialization model and the earlier navigation baseline:
 
 ```python
 from huggingface_hub import snapshot_download

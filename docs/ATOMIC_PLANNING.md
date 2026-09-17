@@ -29,16 +29,17 @@ python3 scripts/build_scaled_games.py --output-dir data/scaled_games_v4b
 python3 scripts/build_local_maze_data.py --input data/scaled_games_v4b/policy \
   --output data/local_maze_v1
 CUDA_VISIBLE_DEVICES=0 python scripts/train_pipeline_decisions.py \
-  --input data/local_maze_v1 --output-dir runs/local_atomic_seed17 \
+  --input data/local_maze_v1 --output-dir runs_repro/local_atomic_seed17 \
   --init-checkpoint checkpoints/NanoJev --objective gold_distribution --loss ce \
   --steps 300 --head-steps 0 --seed 17 --eval-every 50 --batch-questions 16 \
   --microbatch-questions 4 --max-microbatch-tokens 16384 --max-length 2048 \
   --gradient-checkpointing --precision bf16 --disable-native-triton
 python3 scripts/evaluate_composed_maze.py \
   --episodes results/rollout_pilot_episodes.jsonl --engine checkpoint \
-  --checkpoint runs/local_atomic_seed17 --output results/composed_local_atomic.json
-python3 scripts/summarize_composed_maze.py
+  --checkpoint runs_repro/local_atomic_seed17 --output runs_repro/composed_local_atomic.json
 ```
+
+The new evaluation is saved to `runs_repro/composed_local_atomic.json`. The table above describes the committed `results/composed_*.json` reports. `python3 scripts/summarize_composed_maze.py` reads those committed reports and rewrites `docs/ATOMIC_PLANNING.md`; it does not consume `runs_repro` outputs.
 
 Whole-map direct-action results remain a separate [planning stress test](DEVELOPMENT_RESULTS.md).
 
@@ -73,8 +74,8 @@ See [the model-guided results](MODEL_EDGE_RESULTS.md) for the five-system compar
 ```bash
 python3 scripts/evaluate_model_edges_maze.py \
   --episodes results/rollout_pilot_episodes.jsonl --engine checkpoint \
-  --checkpoint runs/local_atomic_seed17 --max-steps 128 \
-  --output results/model_edges_local_atomic.json
+  --checkpoint runs_repro/local_atomic_seed17 --max-steps 0 \
+  --output runs_repro/model_edges_local_atomic.json
 ```
 
 ## API probability records
