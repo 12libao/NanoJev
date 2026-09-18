@@ -94,8 +94,10 @@ action**. The final episode outcome supplies `gold`, with
 `gold_label_kind='observed_outcome'`. Unexecuted actions receive no imagined
 counterfactual labels. No one-step safety rule, action preference distribution,
 or bootstrapped estimate substitutes for that completed-episode observation.
-Outcome training retains every executed transition. Selecting a fixed number
-of states based on the final episode length would make inclusion depend on
+Outcome training retains every recorded decision transition, including forced
+singleton actions. Internal Maze reposition moves consume the physical budget
+and appear in movement logs; they are not separate model decision questions.
+Selecting a fixed number of states based on the final episode length would make inclusion depend on
 future termination and can bias the success target. Policy SFT may use a
 bounded per-episode subset because its targets are supplied state-conditional
 API distributions.
@@ -254,7 +256,7 @@ for loss in paired_brier_pg brier ce; do
     --cases configs/unified_games_v1_cases.jsonl --engine checkpoint \
     --checkpoint "runs/critic_${loss}_v1" \
     --controller q_greedy --epsilon 0.15 --seed 17 \
-    --env-batch 4 --max-length 8192 \
+    --env-batch 16 --batch-questions 16 --max-length 8192 \
     --output "data/q_${loss}_v1_episodes.jsonl"
 done
 ```
@@ -280,17 +282,65 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_unified_checkpoint.py \
 This command evaluates a supplied checkpoint without parameter updates or
 temperature fitting. Here `--stage critic` only chooses the metric weights.
 Use its outcome-only metrics for a before/after probability comparison.
-Also run the SFT checkpoint with `--controller q_greedy --epsilon 0.15` to
-compare game performance before and after outcome training under the same
-action-selection rule.
+Compare game performance before and after outcome training under the same
+action-selection rule:
 
-To start another iteration, construct a new dataset from each arm's fresh
-episode file with `--role outcome`,
-`--retention data/unified/policy_full`, and `--max-states-per-episode 0`, then
-train from that checkpoint. Exploration belongs to the continuation
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/unified_game_pipeline.py rollout \
+  --cases configs/unified_games_v1_cases.jsonl --engine checkpoint \
+  --checkpoint runs/sft_unified --controller q_greedy --epsilon 0.15 \
+  --seed 17 --env-batch 16 --batch-questions 16 --max-length 8192 \
+  --output data/sft_q_baseline.jsonl
+```
+
+The first completed cycle selects the paired arm using development CE and
+prepares its next iteration dataset after the complete rollout:
+
+```bash
+python scripts/unified_game_pipeline.py dataset \
+  --episodes data/q_paired_brier_pg_v1_episodes.jsonl --role outcome \
+  --retention data/unified/policy_full --max-states-per-episode 0 \
+  --output data/unified/outcomes_v2
+python scripts/train_unified_games.py --input data/unified/outcomes_v2 \
+  --stage critic --validate-only
+```
+
+This completes one round of outcome training and controller replacement, with
+new data ready for another round. The second round's parameter updates have
+not started. To continue, train from the selected paired checkpoint using
+`outcomes_v2`. Exploration belongs to the continuation
 policy identity. Do not merge old and new outcome-policy IDs as one calibrated
 target. Recollection and iteration choices must use training/development
 evidence; test and OOD outcomes remain evaluation only.
+
+Replay the recorded actions without model inference and generate a comparison
+from complete episode manifests:
+
+```bash
+for loss in paired_brier_pg brier ce; do
+  python scripts/replay_unified_episodes.py \
+    --episodes "data/q_${loss}_v1_episodes.jsonl" \
+    --output "data/q_${loss}_v1_replay.json"
+done
+
+python scripts/summarize_unified_games.py \
+  --run 'Jev=data/unified/jev_base.jsonl' \
+  --run 'Jev=data/unified/jev_extension.jsonl' \
+  --run 'SFT Q=data/sft_q_baseline.jsonl' \
+  --run 'Paired Q=data/q_paired_brier_pg_v1_episodes.jsonl' \
+  --run 'Brier Q=data/q_brier_v1_episodes.jsonl' \
+  --run 'CE Q=data/q_ce_v1_episodes.jsonl' \
+  --training 'SFT Q=runs/eval_sft_outcomes/summary.json' \
+  --training 'Paired Q=runs/critic_paired_brier_pg_v1/summary.json' \
+  --training 'Brier Q=runs/critic_brier_v1/summary.json' \
+  --training 'CE Q=runs/critic_ce_v1/summary.json' \
+  --output-dir results/unified_comparison
+```
+
+Repeating a run name combines its disjoint case files. The reporter verifies
+completion, file hashes, identical case definitions, and checkpoint identities
+before comparing systems. It writes task/scenario success, episode counts,
+Wilson intervals, and probability metrics to JSON and Markdown.
 
 ## Splits, artifacts, and interpretation
 

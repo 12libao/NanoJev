@@ -75,22 +75,23 @@ Measured in the running service: **6 states · 18 questions · 44 candidate path
 
 **Unified game training:** one shared checkpoint learns Maze, Snake, and
 ViZDoom Basic / Predict Position through the same state-and-question interface.
-The current collection contains **228 Jev-guided episodes and 16,637 executed
-decisions**: 14,503 model decisions and 2,134 forced moves. Policy SFT uses a
-200-update base stage followed by 100 updates on the expanded curriculum.
+The first complete cycle includes policy SFT, frozen-policy outcome learning,
+real game evaluation, and fresh data for the next iteration.
 
-The next stage freezes that policy, samples complete episodes with 15% uniform
-exploration, and labels **every executed state/action** with its actual eventual
-success. Probability training compares `paired_brier_pg` (32 predictive samples),
-direct Brier, and CE, each retaining 25% policy-supervision weight. A Q-based
-controller then starts a fresh collection cycle.
+Across the fixed test cohort, the paired outcome-training arm raises
+**task-macro success from 25.28% to 41.11% with the same Q controller**.
+Its test outcome vector Brier improves from **0.881312 to 0.122410**.
+The experiment includes direct Brier and CE controls, 228 cases per complete
+rollout, and independent simulator replay. The new controller has generated
+**17,969 outcome questions** for the next training round.
 
 **Choice** returns one distribution over the offered actions. **Boolean Q**
 returns an independent success probability for each action; those probabilities
 do not have to sum to one. Changing the continuation policy requires fresh
 outcomes for the new probability target.
 
-[Unified environments and exact training commands](docs/UNIFIED_GAMES.md)
+[Unified environments and exact training commands](docs/UNIFIED_GAMES.md) ·
+[First-cycle results by game and scenario](docs/UNIFIED_RESULTS.md)
 
 - **Full-size environments:** 8×8, 16×16, 32×32, and 50×50 mazes, four topologies, multiple positions per map, and configurable larger sizes.
 - **Local judgments + code planning:** matched 5×5 observations, four parallel safety judgments, movement memory, and model-guided exploration.
