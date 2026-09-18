@@ -266,6 +266,24 @@ their randomness, belong to their frozen continuation-policy identities.
 Report test and OOD completion separately; collecting all splits does not
 permit their records to enter the training sampler.
 
+Evaluate the SFT checkpoint's outcome predictions on the same frozen dataset
+before comparing it with the three trained critics:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_unified_checkpoint.py \
+  --input data/unified/outcomes_v1 --checkpoint runs/sft_unified \
+  --output-dir runs/eval_sft_outcomes --stage critic \
+  --microbatch-questions 8 --max-microbatch-tokens 32768 --max-length 8192 \
+  --precision bf16 --disable-native-triton
+```
+
+This command evaluates a supplied checkpoint without parameter updates or
+temperature fitting. Here `--stage critic` only chooses the metric weights.
+Use its outcome-only metrics for a before/after probability comparison.
+Also run the SFT checkpoint with `--controller q_greedy --epsilon 0.15` to
+compare game performance before and after outcome training under the same
+action-selection rule.
+
 To start another iteration, construct a new dataset from each arm's fresh
 episode file with `--role outcome`,
 `--retention data/unified/policy_full`, and `--max-states-per-episode 0`, then
