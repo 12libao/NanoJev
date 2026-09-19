@@ -8,6 +8,7 @@ inside this trainer. All model files are read from a local checkpoint bundle.
 """
 import argparse
 from collections import Counter, defaultdict
+import copy
 import hashlib
 import importlib.metadata
 import json
@@ -260,12 +261,155 @@ def loss_spec(example, stage, critic_loss):
     return objective, critic_loss
 
 
-def mixed_question_loss(logits, examples, stage, critic_loss, reward_samples=32, generator=None):
+TD_COUNTERS = ("target_forward_calls", "target_question_predictions", "target_leaf_paths",
+               "target_padded_tokens", "target_forward_seconds", "terminal_target_instances",
+               "bootstrap_target_instances")
+
+
+class TDTargetProvider:
+    """Frozen-policy Expected SARSA targets, recomputed with a lagged model.
+
+    Only request tokens and trajectory indices are cached. No model probability
+    survives a call to targets(), including across hard target refreshes.
+    The trajectory index is separately validated by unified_td.load_td_index.
+    """
+    def __init__(self, model, index, train_examples, tokenizer, args):
+        self.precision = args.precision
+        self.max_questions = min(4, args.microbatch_questions)
+        self.max_tokens = args.max_microbatch_tokens
+        self.pad_token = tokenizer.pad_token_id
+        self.entries, self.bootstrap = {}, {}
+        self.version_step, self.refresh_steps = 0, []
+        self.totals = dict.fromkeys(TD_COUNTERS, 0)
+        for ex in train_examples:
+            if ex["record_role"] != "outcome":
+                continue
+            if ex["split"] != "train":
+                raise ValueError("TD target preparation must only receive training outcomes")
+            key = (ex["source"]["id"], ex["qid"])
+            if key not in index:
+                raise ValueError(f"Missing trajectory TD target for {ex['id']}")
+            entry = index[key]
+            if "terminal_target" in entry:
+                value = entry["terminal_target"]
+                if value not in (0., 1.) or value != ex["gold_index"]:
+                    raise ValueError("Terminal TD target must equal the actual final Boolean outcome")
+                self.entries[ex["id"]] = {"terminal_target": float(value)}
+                continue
+            request = entry["request"]
+            boot_key = (entry["episode_id"], entry["bootstrap_decision_index"])
+            behavior, mapping = entry["behavior_probs"], entry["action_to_qid"]
+            if not behavior or set(behavior) != set(mapping):
+                raise ValueError("Frozen behavior probabilities must cover every bootstrap action")
+            if (any(not isinstance(p, (int, float)) or isinstance(p, bool) or
+                    not math.isfinite(p) or not 0 <= p <= 1 for p in behavior.values()) or
+                    abs(math.fsum(behavior.values()) - 1) > 1e-6):
+                raise ValueError("Frozen bootstrap behavior must be a finite probability simplex")
+            if len(set(mapping.values())) != len(mapping) or set(mapping.values()) != set(request["questions"]):
+                raise ValueError("Bootstrap action-to-question mapping must be one-to-one and complete")
+            signature = hashlib.sha256(json.dumps([request, behavior, mapping], sort_keys=True,
+                                                  allow_nan=False).encode()).hexdigest()
+            if boot_key in self.bootstrap:
+                if self.bootstrap[boot_key]["signature"] != signature:
+                    raise ValueError("The same frozen bootstrap state has inconsistent input or behavior")
+            else:
+                prepared = prepare_examples({"states": [request]}, tokenizer, args.max_length)
+                if any(q["type"] != "boolean" or q["candidate_ids"] != ["false", "true"] for q in prepared):
+                    raise ValueError("Each bootstrap action requires its own Boolean success question")
+                pack_complete_questions(prepared, self.max_questions, self.max_tokens)
+                self.bootstrap[boot_key] = {"questions": prepared, "behavior_probs": dict(behavior),
+                                            "action_to_qid": dict(mapping), "signature": signature}
+            self.entries[ex["id"]] = {"bootstrap_key": boot_key}
+        if not self.entries:
+            raise ValueError("TD requires training outcome questions")
+        self.cache_stats = {"outcome_questions": len(self.entries), "bootstrap_states": len(self.bootstrap),
+                            "tokenized_boolean_questions": sum(len(b["questions"]) for b in self.bootstrap.values()),
+                            "max_path_tokens": max((len(tokens) for b in self.bootstrap.values()
+                                                    for q in b["questions"] for tokens in q["leaf_tokens"]), default=0)}
+        self.target_model = copy.deepcopy(model)
+        self.target_model.requires_grad_(False)
+        self.target_model.eval()
+        if hasattr(self.target_model.backbone, "gradient_checkpointing_disable"):
+            self.target_model.backbone.gradient_checkpointing_disable()
+
+    def targets(self, batch):
+        import torch
+        stats = dict.fromkeys(TD_COUNTERS, 0)
+        targets, needed = {}, {}
+        for ex in batch:
+            if ex["record_role"] != "outcome":
+                continue
+            if ex["split"] != "train" or ex["id"] not in self.entries:
+                raise ValueError("TD cannot use heldout or unindexed outcome examples")
+            entry = self.entries[ex["id"]]
+            if "terminal_target" in entry:
+                targets[ex["id"]] = entry["terminal_target"]
+                stats["terminal_target_instances"] += 1
+            else:
+                key = entry["bootstrap_key"]
+                needed[key] = self.bootstrap[key]
+                stats["bootstrap_target_instances"] += 1
+        prepared = []
+        for key, state in needed.items():
+            prepared.extend({**q, "td_bootstrap_key": key} for q in state["questions"])
+        predictions = defaultdict(dict)
+        self.target_model.eval()
+        started = time.perf_counter()
+        with torch.inference_mode():
+            for group in pack_complete_questions(prepared, self.max_questions, self.max_tokens):
+                with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.precision == "bf16"):
+                    logits, _ = self.target_model(group, self.pad_token)
+                if logits.shape != (len(group), 2) or not torch.isfinite(logits).all():
+                    raise RuntimeError("TD target model must return finite two-class Boolean logits")
+                # Transfer once per microbatch; the scalar targets have no gradient graph.
+                probabilities = logits.float().softmax(-1)[:, 1].cpu().tolist()
+                for ex, value in zip(group, probabilities):
+                    predictions[ex["td_bootstrap_key"]][ex["qid"]] = value
+                leaf_paths = sum(len(ex["leaf_tokens"]) for ex in group)
+                width = max(len(tokens) for ex in group for tokens in ex["leaf_tokens"])
+                stats["target_forward_calls"] += 1
+                stats["target_question_predictions"] += len(group)
+                stats["target_leaf_paths"] += leaf_paths
+                stats["target_padded_tokens"] += leaf_paths * width
+        stats["target_forward_seconds"] = time.perf_counter() - started if prepared else 0.0
+        values = {}
+        for key, state in needed.items():
+            mapping = state["action_to_qid"]
+            if set(predictions[key]) != set(mapping.values()):
+                raise RuntimeError("Incomplete target-model predictions for a bootstrap state")
+            value = math.fsum(prob * predictions[key][mapping[action]]
+                              for action, prob in state["behavior_probs"].items())
+            if not math.isfinite(value) or not -1e-6 <= value <= 1 + 1e-6:
+                raise RuntimeError("Expected SARSA target is outside [0,1]")
+            values[key] = min(1., max(0., value))  # Only roundoff at probability endpoints.
+        for ex in batch:
+            if ex["record_role"] == "outcome" and ex["id"] not in targets:
+                targets[ex["id"]] = values[self.entries[ex["id"]]["bootstrap_key"]]
+        for key, value in stats.items():
+            self.totals[key] += value
+        return targets, stats
+
+    def refresh(self, online_model, completed_step):
+        if type(completed_step) is not int or completed_step <= self.version_step:
+            raise ValueError("Target refresh steps must strictly increase")
+        self.target_model.load_state_dict(online_model.state_dict(), strict=True)
+        self.target_model.requires_grad_(False)
+        self.target_model.eval()
+        self.version_step = completed_step
+        self.refresh_steps.append(completed_step)
+
+
+def mixed_question_loss(logits, examples, stage, critic_loss, reward_samples=32, generator=None,
+                        td_targets=None, td_weight=0.0):
     """One weighted sum; microbatches must not divide by their own row counts."""
     import torch
     from calibrated_objectives import grouped_calibrated_loss
     if len(logits) != len(examples) or not examples:
         raise ValueError("Logits and nonempty complete question batch must align")
+    if not math.isfinite(td_weight) or not 0 <= td_weight <= 1:
+        raise ValueError("TD weight must be in [0,1]")
+    if td_weight and (stage != "critic" or critic_loss != "brier" or td_targets is None):
+        raise ValueError("TD requires critic Brier loss and explicit detached bootstrap targets")
     losses = []
     for values, ex in zip(logits, examples):
         objective, kind = loss_spec(ex, stage, critic_loss)
@@ -273,6 +417,19 @@ def mixed_question_loss(logits, examples, stage, critic_loss, reward_samples=32,
         if not isinstance(weight, (int, float)) or not math.isfinite(weight) or weight <= 0:
             raise ValueError("Every sampled question needs a finite positive population weight")
         loss = grouped_calibrated_loss(values.unsqueeze(0), [ex], objective, kind, reward_samples, generator)[0]
+        if td_weight and ex["record_role"] == "outcome":
+            if ex["type"] != "boolean" or ex["candidate_ids"] != ["false", "true"]:
+                raise ValueError("TD targets require independent Boolean event questions")
+            if ex["id"] not in td_targets:
+                raise ValueError("Missing TD target for a sampled outcome question")
+            probability = torch.as_tensor(td_targets[ex["id"]], dtype=torch.float32,
+                                           device=values.device).detach()
+            if probability.numel() != 1 or not torch.isfinite(probability).all() or not (0 <= probability <= 1).all():
+                raise ValueError("TD success target must be one finite probability in [0,1]")
+            probability = probability.reshape(())
+            soft_target = torch.stack((1 - probability, probability))
+            td_loss = (values[:2].float().softmax(-1) - soft_target).square().sum()
+            loss = (1 - td_weight) * loss + td_weight * td_loss
         losses.append(loss * weight)
     return torch.stack(losses).sum()
 
@@ -370,6 +527,10 @@ def parse_args(argv=None):
     parser.add_argument("--precision", choices=["fp32", "bf16"], default="bf16")
     parser.add_argument("--gradient-checkpointing", action="store_true")
     parser.add_argument("--disable-native-triton", action="store_true")
+    parser.add_argument("--td-episodes", help="Complete frozen-policy episode JSONL, verified against the dataset")
+    parser.add_argument("--td-n-step", type=int, default=3, help="Number of recorded decision transitions; gamma is one")
+    parser.add_argument("--td-weight", type=float, default=0., help="Outcome loss weight for detached soft Brier TD; zero preserves MC")
+    parser.add_argument("--target-update-every", type=int, default=25, help="Hard-copy the online model after this many optimizer updates")
     parser.add_argument("--validate-only", action="store_true", help="Stdlib schema/provenance audit; no model or GPU")
     args = parser.parse_args(argv)
     args.loss = args.loss or ("ce" if args.stage == "sft" else "paired_brier_pg")
@@ -384,6 +545,12 @@ def parse_args(argv=None):
         parser.error("Learning rates must be finite and positive")
     if not math.isfinite(args.weight_decay) or args.weight_decay < 0:
         parser.error("Weight decay must be finite and nonnegative")
+    if args.td_n_step < 1 or args.target_update_every < 1 or not math.isfinite(args.td_weight) or not 0 <= args.td_weight <= 1:
+        parser.error("TD n-step/refresh intervals must be positive, and TD weight must be in [0,1]")
+    if args.td_weight and not args.td_episodes:
+        parser.error("Positive --td-weight requires --td-episodes")
+    if args.td_episodes and (args.stage != "critic" or args.loss != "brier" or args.head_steps != 0):
+        parser.error("TD episode input requires --stage critic --loss brier --head-steps 0")
     if not args.validate_only and (not args.init_checkpoint or not args.output_dir):
         parser.error("Training requires --init-checkpoint and --output-dir")
     return args
@@ -393,13 +560,18 @@ def main(argv=None):
     args = parse_args(argv)
     records, manifest, files, schema_audit = read_unified_dataset(args.input)
     weights = population_weights(args.stage, args.balance, args.retention_fraction)
+    td_index, td_audit = None, None
+    if args.td_episodes:
+        from unified_td import load_td_index
+        td_index, td_audit = load_td_index(args.td_episodes, records, manifest, args.td_n_step)
     for split in ("train", "dev"):
         for task, role in weights:
             if not schema_audit["eligible_by_split_task_role"].get(f"{split}/{task}/{role}", 0):
                 raise ValueError(f"Missing eligible {split}/{task}/{role} questions")
     if args.validate_only:
         print(json.dumps({**schema_audit, "stage": args.stage, "loss": args.loss,
-                          "population_weights": {"/".join(k): v for k, v in weights.items()}}, ensure_ascii=False))
+                          "population_weights": {"/".join(k): v for k, v in weights.items()},
+                          "td_enabled": bool(args.td_weight), "td_audit": td_audit}, ensure_ascii=False))
         return
     out = Path(args.output_dir)
     if out.exists() and any(out.iterdir()):
@@ -420,6 +592,8 @@ def main(argv=None):
     sampler = BalancedQuestionSampler(examples, args.stage, args.balance, args.retention_fraction, args.seed)
     for split_examples in splits.values():
         pack_complete_questions(split_examples, args.microbatch_questions, args.max_microbatch_tokens)
+    td_provider = (TDTargetProvider(model, td_index, splits["train"], tokenizer, args)
+                   if args.td_weight else None)
     out.mkdir(parents=True, exist_ok=True)
     config = {**vars(args), "schema_version": "nanojev-unified-games-v1",
               "model": runtime.run_config.get("model"), "set_head": runtime.run_config["set_head"],
@@ -432,15 +606,31 @@ def main(argv=None):
               "population_weights": {"/".join(k): v for k, v in weights.items()},
               "sampling": "stratified with replacement; per-cell exact population weights; train rows only",
               "parameter_storage": "float32", "forward_autocast": args.precision,
-              "objective": "Choice API full-distribution CE plus observed Boolean event loss",
+              "objective": ("Choice full-distribution CE plus observed Boolean MC Brier and frozen-policy soft TD Brier"
+                            if td_provider else "Choice API full-distribution CE plus observed Boolean event loss"),
               "selection": "minimum fixed population-weighted dev CE including initial checkpoint; test only after selection",
               "temperature": 1.0, "temperature_fitted": False,
               "deps": {name: importlib.metadata.version(name) for name in ("torch", "transformers", "safetensors")},
               "gpu": torch.cuda.get_device_name(0), "schema_counts": schema_audit,
               "predictive_samples_are_physical_actions": False,
-              "frozen_continuation_policy_is_updated_by_this_script": False}
+              "frozen_continuation_policy_is_updated_by_this_script": False,
+              "td_enabled": bool(td_provider), "td_audit": td_audit,
+              "td_implementation_sha256": (file_sha256(Path(__file__).with_name("unified_td.py"))
+                                            if args.td_episodes else None),
+              "td_contract": {"active": bool(td_provider), "gamma": 1, "n_step_unit": "recorded decision transitions",
+                              "continuation_policy_id": schema_audit["continuation_policy_id"],
+                              "bootstrap_policy": "recorded frozen behavior_probs; never online greedy",
+                              "target_microbatch_questions": min(4, args.microbatch_questions),
+                              "max_microbatch_tokens": args.max_microbatch_tokens,
+                              "heldout_target": "observed terminal outcome only",
+                              "outcome_loss": "(1-td_weight)*MC_Brier + td_weight*detached_soft_TD_Brier",
+                              "initial_target": "deepcopy of initial online model; eval mode; no gradients",
+                              "prediction_cache": "none; only bootstrap input tokens and indices are cached",
+                              "bootstrap_cache": td_provider.cache_stats if td_provider else None}}
     dump(out / "config.json", config)
     dump(out / "target_audit.json", target_audit)
+    if td_audit is not None:
+        dump(out / "td_audit.json", td_audit)
     tokenizer.save_pretrained(out / "tokenizer")
     model.backbone.config.save_pretrained(out / "backbone_config")
     initial = evaluate_unified(model, splits["dev"], tokenizer.pad_token_id, args, weights,
@@ -464,6 +654,7 @@ def main(argv=None):
     torch.cuda.synchronize()
     started = time.perf_counter()
     logs = []
+    online_compute = dict.fromkeys(("forward_calls", "question_instances", "leaf_paths", "padded_tokens"), 0)
     for step in range(args.head_steps + args.steps):
         warm = step < args.head_steps
         for param in body:
@@ -471,26 +662,44 @@ def main(argv=None):
         optimizer.param_groups[1]["lr"] = args.head_warmup_lr if warm else args.head_lr
         batch = sampler.sample(args.batch_questions)
         groups = pack_complete_questions(batch, args.microbatch_questions, args.max_microbatch_tokens)
-        model.train()
+        online_step = {"forward_calls": len(groups), "question_instances": len(batch),
+                       "leaf_paths": sum(len(ex["leaf_tokens"]) for ex in batch),
+                       "padded_tokens": sum(sum(len(ex["leaf_tokens"]) for ex in group) *
+                                            max(len(tokens) for ex in group for tokens in ex["leaf_tokens"])
+                                            for group in groups)}
+        for key, value in online_step.items():
+            online_compute[key] += value
         optimizer.zero_grad(set_to_none=True)
+        td_version = td_provider.version_step if td_provider else None
+        td_targets, td_stats = (td_provider.targets(batch) if td_provider else
+                                (None, dict.fromkeys(TD_COUNTERS, 0)))
+        model.train()
         loss_sum = 0.0
         for group in groups:
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=args.precision == "bf16"):
                 logits, _ = model(group, tokenizer.pad_token_id)
-            loss = mixed_question_loss(logits, group, args.stage, args.loss, args.reward_samples, reward_rng)
+            loss = mixed_question_loss(logits, group, args.stage, args.loss, args.reward_samples, reward_rng,
+                                       td_targets=td_targets, td_weight=args.td_weight)
             if not torch.isfinite(loss):
                 raise RuntimeError("Nonfinite training loss")
             loss.backward()
             loss_sum += float(loss.detach())
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0, error_if_nonfinite=True)
         optimizer.step()
+        target_refreshed = None
+        if td_provider and (step + 1) % args.target_update_every == 0:
+            td_provider.refresh(model, step + 1)
+            target_refreshed = step + 1
         cells = Counter((ex["task"], ex["record_role"]) for ex in batch)
         item = {"step": step + 1, "phase": "head" if warm else "full", "loss": loss_sum,
                 "loss_is_score_function_surrogate": args.loss == "paired_brier_pg",
                 "gradient_norm_before_clip": float(grad_norm), "microbatches": len(groups),
                 "sample_counts": {"/".join(k): v for k, v in sorted(cells.items())},
                 "batch_question_ids_sha256": hashlib.sha256("\n".join(ex["id"] for ex in batch).encode()).hexdigest(),
-                "elapsed_seconds": time.perf_counter() - started}
+                "elapsed_seconds": time.perf_counter() - started,
+                "online_compute": online_step,
+                "td": {"enabled": bool(td_provider), "target_version_step": td_version,
+                       "target_refreshed_to_step": target_refreshed, **td_stats}}
         if not warm and ((step + 1 - args.head_steps) % args.eval_every == 0 or step + 1 == args.steps + args.head_steps):
             metrics = evaluate_unified(model, splits["dev"], tokenizer.pad_token_id, args, weights, require_all=True)
             item["dev"] = metrics
@@ -516,7 +725,12 @@ def main(argv=None):
                "metrics_by_split": final, "training_seconds": training_seconds,
                "max_gpu_allocated_gb": max_memory, "weights_sha256": file_sha256(out / "best.safetensors"),
                "continuation_policy_id": schema_audit["continuation_policy_id"],
-               "temperature": 1.0, "temperature_fitted": False}
+               "temperature": 1.0, "temperature_fitted": False,
+               "online_compute": online_compute,
+               "td": {"enabled": bool(td_provider), "n_step": args.td_n_step, "weight": args.td_weight,
+                      "target_update_every": args.target_update_every,
+                      "target_refresh_steps": td_provider.refresh_steps if td_provider else [],
+                      **(td_provider.totals if td_provider else dict.fromkeys(TD_COUNTERS, 0))}}
     dump(out / "train_log.json", logs)
     dump(out / "summary.json", summary)
     print(json.dumps({"done": str(out), **summary}, allow_nan=False), flush=True)
