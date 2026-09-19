@@ -83,7 +83,14 @@ Across the fixed test cohort, the paired outcome-training arm raises
 Its test outcome vector Brier improves from **0.881312 to 0.122410**.
 The experiment includes direct Brier and CE controls, 228 cases per complete
 rollout, and independent simulator replay. The new controller has generated
-**17,969 outcome questions** for the next training round.
+**17,969 outcome questions**, now used in a completed MC/TD training comparison.
+
+**Multi-step TD:** eight runs compare MC, three-step mixing, eight-step mixing,
+and pure TD across two training seeds. The secondary eight-step mixed arm reaches
+**57.22% test / 20.28% OOD task-macro success**, compared with
+**45.97% / 17.22% for MC**. Each selected model plays all 228 cases.
+The full report includes the predeclared three-step comparison, per-game counts,
+probability scores, and target-network computation costs.
 
 **Choice** returns one distribution over the offered actions. **Boolean Q**
 returns an independent success probability for each action; those probabilities
@@ -91,7 +98,9 @@ do not have to sum to one. Changing the continuation policy requires fresh
 outcomes for the new probability target.
 
 [Unified environments and exact training commands](docs/UNIFIED_GAMES.md) ·
-[First-cycle results by game and scenario](docs/UNIFIED_RESULTS.md)
+[First-cycle results by game and scenario](docs/UNIFIED_RESULTS.md) ·
+[Multi-step TD implementation](docs/UNIFIED_TD.md) ·
+[Completed MC/TD comparison](docs/UNIFIED_TD_RESULTS.md)
 
 - **Full-size environments:** 8×8, 16×16, 32×32, and 50×50 mazes, four topologies, multiple positions per map, and configurable larger sizes.
 - **Local judgments + code planning:** matched 5×5 observations, four parallel safety judgments, movement memory, and model-guided exploration.

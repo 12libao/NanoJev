@@ -6,6 +6,7 @@ ViZDoom success-probability model. The input representation, network, candidate
 actions, environment cases, and policy-retention objective remain fixed.
 
 [Predeclared experiment](../configs/unified_td_v1.json) ·
+[Completed results](UNIFIED_TD_RESULTS.md) ·
 [First policy iteration](UNIFIED_RESULTS.md) ·
 [Environment and collection commands](UNIFIED_GAMES.md)
 
@@ -155,5 +156,5 @@ target network and performs no bootstrap inference. After all arms finish:
 python scripts/summarize_unified_td.py \
   --experiment configs/unified_td_v1.json \
   --baseline 'Initial Q=data/unified_v2/remote/q_paired_brier_pg_v1_episodes.jsonl' \
-  --output-dir results/unified_td_v1
+  --output-dir runs/unified_td_v1_reproduced
 ```

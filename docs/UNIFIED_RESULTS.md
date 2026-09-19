@@ -171,8 +171,8 @@ runbook and [objective document](RLCD_EXPERIMENT.md).
 
 The selected new controller has now collected a complete new cohort.
 `outcomes_v2` stores its own continuation-policy identity and retains the policy
-SFT examples. **One outcome-training round is complete; the next dataset is
-ready, and second-round parameter updates have not started.**
+SFT examples. The subsequent round has now completed eight MC/TD training arms
+and their game evaluations; see the [multi-step TD results](UNIFIED_TD_RESULTS.md).
 
 Validation includes 97 passing remote unit tests, a tiny-data fitting check,
 exactly matched training samples across the three controls, and independent

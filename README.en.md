@@ -4,7 +4,21 @@
 
 **A 0.6B parallel decision model. States and questions in, complete probability distributions out—with zero output-token decoding.**
 
-[Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data) · [Maze + Snake: open the decision arcade](web/arcade.html)
+[Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+
+**[Open the live side-by-side demo →](https://nanojev.tianyuchen99.chatgpt.site)**
+
+## Three models, one game
+
+[![Jev, NanoJev, and Untuned Qwen exploring the maze side by side](assets/side_by_side_maze.png)](https://nanojev.tianyuchen99.chatgpt.site/#maze)
+
+[Download the maze video (MP4)](assets/side_by_side_maze.mp4) · 27 seconds · 1440 × 1120 · 30 fps
+
+[Play Snake](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [Explore the 50×50 maze](https://nanojev.tianyuchen99.chatgpt.site/#maze) · [Recorded sources and replay checks](assets/side_by_side_data_manifest.json)
+
+The standalone ChatGPT Sites demo presents **Jev, NanoJev, and Untuned Qwen** in three light panels. Playback advances by the same environment step across panels; completed runs freeze at their actual final state. Probability bars show the last decision that produced the displayed state. Shared code planning remains part of each system.
+
+The new maze baseline is the original Qwen3-0.6B: **4,726 attempts, 2,044 collisions, goal reached**. The older maze video below keeps its original **Starting NanoJev** comparison and recorded results.
 
 ## Recorded showcase runs
 
@@ -59,6 +73,35 @@ Measured in the running service: **6 states · 18 questions · 44 candidate path
 
 ## Larger games and calibrated decisions
 
+**Unified game training:** one shared checkpoint learns Maze, Snake, and
+ViZDoom Basic / Predict Position through the same state-and-question interface.
+The first complete cycle includes policy SFT, frozen-policy outcome learning,
+real game evaluation, and fresh data for the next iteration.
+
+Across the fixed test cohort, the paired outcome-training arm raises
+**task-macro success from 25.28% to 41.11% with the same Q controller**.
+Its test outcome vector Brier improves from **0.881312 to 0.122410**.
+The experiment includes direct Brier and CE controls, 228 cases per complete
+rollout, and independent simulator replay. The new controller has generated
+**17,969 outcome questions**, now used in a completed MC/TD training comparison.
+
+**Multi-step TD:** eight runs compare MC, three-step mixing, eight-step mixing,
+and pure TD across two training seeds. The secondary eight-step mixed arm reaches
+**57.22% test / 20.28% OOD task-macro success**, compared with
+**45.97% / 17.22% for MC**. Each selected model plays all 228 cases.
+The full report includes the predeclared three-step comparison, per-game counts,
+probability scores, and target-network computation costs.
+
+**Choice** returns one distribution over the offered actions. **Boolean Q**
+returns an independent success probability for each action; those probabilities
+do not have to sum to one. Changing the continuation policy requires fresh
+outcomes for the new probability target.
+
+[Unified environments and exact training commands](docs/UNIFIED_GAMES.md) ·
+[First-cycle results by game and scenario](docs/UNIFIED_RESULTS.md) ·
+[Multi-step TD implementation](docs/UNIFIED_TD.md) ·
+[Completed MC/TD comparison](docs/UNIFIED_TD_RESULTS.md)
+
 - **Full-size environments:** 8×8, 16×16, 32×32, and 50×50 mazes, four topologies, multiple positions per map, and configurable larger sizes.
 - **Local judgments + code planning:** matched 5×5 observations, four parallel safety judgments, movement memory, and model-guided exploration.
 - **Snake dynamics:** reproducible food generation, body growth, collision rules, tail movement, dynamic action candidates, and safety questions.
@@ -95,7 +138,7 @@ Choice uses a shared scalar head and set attention. Boolean uses a single-path s
 
 [Complete pipeline commands](research/pipeline_runbook.md)
 
-## Quick start: decision arcade
+## Quick start: side-by-side replay
 
 The interactive replay runs with Python's built-in HTTP server:
 
@@ -105,7 +148,7 @@ cd NanoJev
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-Open **http://127.0.0.1:8080/arcade.html** to play the maze and Snake recordings, inspect decisions, and step through the actual trajectories. The earlier benchmark viewer remains at **http://127.0.0.1:8080/comparison.html**.
+Open **http://127.0.0.1:8080/side-by-side.html** for the three-panel Snake and maze comparison. The dark arcade remains at **http://127.0.0.1:8080/arcade.html**, and the earlier benchmark viewer at **http://127.0.0.1:8080/comparison.html**.
 
 ## Download the showcase models
 
