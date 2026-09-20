@@ -21,7 +21,8 @@ from predict_toy_decisions import (
     unique_object, validate_request,
 )
 
-GOLD_PROB_KINDS = {"programmatic_conditional_distribution", "optimal_action_policy", "deterministic_truth"}
+GOLD_PROB_KINDS = {"programmatic_conditional_distribution", "optimal_action_policy", "deterministic_truth",
+                   "expert_policy_distribution"}
 GOLD_LABEL_KINDS = {"observed_outcome", "deterministic_truth", "reference_argmax_compatibility",
                     "unspecified_compatibility_label", "hard_gold_unspecified", "unobserved"}
 SPLITS = ("train", "dev", "calibration", "test", "ood")

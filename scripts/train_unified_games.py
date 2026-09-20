@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Warm-start one parallel DecisionModel on Maze, Snake and shooting decisions.
 
-Policy rows supply complete API Choice distributions. Outcome rows supply actual
+Policy rows supply API distributions or explicitly declared expert Choice targets. Outcome rows supply actual
 Boolean observations under one frozen continuation policy. No environment, API,
 language generation, inferred counterfactual label, or policy improvement runs
 inside this trainer. All model files are read from a local checkpoint bundle.
@@ -26,6 +26,9 @@ from train_pipeline_decisions import (
 TASKS = ("maze", "snake", "shooting")
 ROLES = ("policy", "outcome")
 LOSSES = ("ce", "brier", "paired_brier_pg")
+POLICY_TARGET_KINDS = ("api_policy_distribution", "expert_action", "expert_distribution")
+POLICY_POOL_KEYS = ("maze/policy", "snake/policy", "shooting/policy/basic",
+                    "shooting/policy/predict_position")
 
 
 def file_sha256(path):
@@ -48,12 +51,42 @@ def _action_identity(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
+def policy_target_kind(metadata):
+    kind = metadata.get("policy_target_kind", "api_policy_distribution")
+    if kind not in POLICY_TARGET_KINDS:
+        raise ValueError("Unknown metadata.policy_target_kind")
+    return kind
+
+
+def policy_target_usable(target, kind):
+    """A declared expert target never falls back to API labels or behavior actions."""
+    if target["gold_label_kind"] == "observed_outcome":
+        raise ValueError("Policy preference labels cannot be declared observed event outcomes")
+    if kind == "expert_action":
+        if target["gold_index"] is None or target["gold_probs"] is not None:
+            raise ValueError("expert_action requires hard gold and forbids a soft gold override")
+        return True
+    if kind == "expert_distribution":
+        if target["gold_probs"] is None or target["gold_probs_kind"] != "expert_policy_distribution":
+            raise ValueError("expert_distribution requires gold_probs_kind=expert_policy_distribution")
+        return True
+    return target["teacher_probs"] is not None
+
+
+def target_transform(example):
+    if example["record_role"] == "outcome":
+        return "observed_boolean_one_hot"
+    return {"api_policy_distribution": "identity_rounded_proxy",
+            "expert_action": "expert_action_one_hot",
+            "expert_distribution": "identity_expert_distribution"}[example.get("policy_target_kind", "api_policy_distribution")]
+
+
 def validate_unified_records(records, manifest):
     """Validate provenance without treating API probabilities as physical outcomes."""
     if not isinstance(manifest, dict):
         raise ValueError("Dataset manifest must be a JSON object")
     policy_id = manifest.get("continuation_policy_id")
-    episode_splits, counts, eligible = {}, Counter(), Counter()
+    episode_splits, counts, eligible, policy_sources = {}, Counter(), Counter(), Counter()
     cell_episodes, state_labels = defaultdict(set), defaultdict(set)
     episode_labels, question_labels, missing_episode_ids = {}, Counter(), Counter()
     outcome_count = 0
@@ -63,6 +96,9 @@ def validate_unified_records(records, manifest):
         if not isinstance(meta, dict) or meta.get("task") not in TASKS or meta.get("record_role") not in ROLES:
             raise ValueError(f"{row['id']}: metadata.task and metadata.record_role must be declared")
         task, role = meta["task"], meta["record_role"]
+        kind = policy_target_kind(meta) if role == "policy" else None
+        if role == "outcome" and "policy_target_kind" in meta:
+            raise ValueError("Outcome rows cannot declare a policy target")
         episode = meta.get("episode_id")
         if episode is not None:
             if not _nonempty_string(episode):
@@ -97,9 +133,8 @@ def validate_unified_records(records, manifest):
             if role == "policy":
                 if question["type"] != "choice":
                     raise ValueError("Policy supervision requires dynamic Choice questions")
-                if target["gold_label_kind"] == "observed_outcome":
-                    raise ValueError("Policy preference labels cannot be declared observed event outcomes")
-                usable = target["teacher_probs"] is not None
+                usable = policy_target_usable(target, kind)
+                policy_sources[(row["split"], task, kind)] += 1
             else:
                 outcome_count += 1
                 if question["type"] != "boolean":
@@ -127,6 +162,7 @@ def validate_unified_records(records, manifest):
         "questions_by_split_task_role": {"/".join(k): v for k, v in sorted(counts.items())},
         "eligible_by_split_task_role": {"/".join(k): v for k, v in sorted(eligible.items())},
         "quarantined_policy_questions": sum(counts[k] - eligible[k] for k in counts if k[2] == "policy"),
+        "policy_questions_by_split_task_target_kind": {"/".join(k): v for k, v in sorted(policy_sources.items())},
         "unique_episodes_by_split_task_role": {"/".join(k): len(cell_episodes[k]) for k in sorted(counts)},
         "rows_missing_episode_id_by_split_task_role": {"/".join(k): v for k, v in sorted(missing_episode_ids.items())},
         "outcome_episode_counts_by_split_task": {
@@ -174,7 +210,11 @@ def prepare_unified_examples(records, tokenizer, max_length):
             target = targets[example["qid"]]
             example.update(target, state_id=row["state_id"], family_id=row["family_id"],
                            split=row["split"], source=row, task=meta["task"], record_role=meta["record_role"],
-                           continuation_policy_id=meta.get("continuation_policy_id"))
+                           continuation_policy_id=meta.get("continuation_policy_id"),
+                           policy_target_kind=policy_target_kind(meta) if meta["record_role"] == "policy" else None,
+                           scenario=meta.get("spec", {}).get("scenario"))
+            if example["record_role"] == "policy":
+                policy_target_usable(target, example["policy_target_kind"])
             objective = objective_for(example)
             examples.append(example)
             audit.append({"id": example["id"], "split": example["split"], "task": example["task"],
@@ -184,7 +224,8 @@ def prepare_unified_examples(records, tokenizer, max_length):
                           "max_path_tokens": max(map(len, example["leaf_tokens"])),
                           "continuation_policy_id": example["continuation_policy_id"],
                           "teacher_target_error": target["teacher_target_error"],
-                          "target_transform": "identity_rounded_proxy" if objective == "teacher" else "observed_boolean_one_hot"})
+                          "policy_target_kind": example["policy_target_kind"],
+                          "target_transform": target_transform(example)})
     return examples, audit
 
 
@@ -193,7 +234,10 @@ def objective_for(example):
     if role == "policy":
         if example["type"] != "choice":
             raise ValueError("Policy examples must be Choice")
-        return "teacher"
+        kind = example.get("policy_target_kind", "api_policy_distribution")
+        if kind not in POLICY_TARGET_KINDS:
+            raise ValueError("Unknown policy_target_kind")
+        return "teacher" if kind == "api_policy_distribution" else "gold_distribution"
     if role == "outcome":
         if example["type"] != "boolean":
             raise ValueError("Outcome examples must be Boolean")
@@ -201,16 +245,60 @@ def objective_for(example):
     raise ValueError("Unknown record_role")
 
 
-def population_weights(stage, balance="task", retention_fraction=.25):
+def population_weights(stage, balance="task", retention_fraction=.25, policy_pool_weights=None):
     if stage not in {"sft", "critic"} or balance not in {"task", "task_role"}:
         raise ValueError("Unknown stage or balancing mode")
     if not math.isfinite(retention_fraction) or not 0 < retention_fraction < 1:
         raise ValueError("retention_fraction must lie strictly between zero and one")
+    if policy_pool_weights is not None:
+        if stage != "sft":
+            raise ValueError("policy_pool_weights is supported only for SFT; critic/TD balancing is unchanged")
+        if not isinstance(policy_pool_weights, dict) or set(policy_pool_weights) != set(POLICY_POOL_KEYS):
+            raise ValueError("policy_pool_weights must cover exactly maze/policy, snake/policy, shooting/policy/basic and shooting/policy/predict_position")
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0
+               for v in policy_pool_weights.values()):
+            raise ValueError("Policy pool weights must be finite and positive")
+        for task in TASKS:
+            mass = math.fsum(value for key, value in policy_pool_weights.items() if key.split("/")[0] == task)
+            if abs(mass - 1 / 3) > 1e-10:
+                raise ValueError("Policy pool weights must preserve exactly one third of population mass per task")
+        return {tuple(key.split("/")): float(policy_pool_weights[key]) for key in POLICY_POOL_KEYS}
     if stage == "sft":
         return {(task, "policy"): 1 / len(TASKS) for task in TASKS}
     retention = .5 if balance == "task_role" else retention_fraction
     return {(task, role): (retention if role == "policy" else 1 - retention) / len(TASKS)
             for task in TASKS for role in ROLES}
+
+
+def sampling_cell(example, weights):
+    cell = (example["task"], example["record_role"])
+    if cell in weights:
+        return cell
+    key = cell + (example.get("scenario"),)
+    if key not in weights:
+        raise ValueError("Unconfigured policy pool: " + "/".join(str(value) for value in key))
+    return key
+
+
+def validate_sampling_pools(records, weights):
+    """Audit eligible pools before loading a model, including held-out pool identity."""
+    counts = Counter()
+    active_roles = {key[:2] for key in weights}
+    for row in records:
+        meta = row["metadata"]
+        if (meta["task"], meta["record_role"]) not in active_roles:
+            continue
+        for target in validate_training_row(row).values():
+            eligible = policy_target_usable(target, policy_target_kind(meta)) if meta["record_role"] == "policy" else True
+            cell = sampling_cell({"task": meta["task"], "record_role": meta["record_role"],
+                                  "scenario": meta.get("spec", {}).get("scenario")}, weights)
+            if eligible:
+                counts[(row["split"],) + cell] += 1
+    for split in ("train", "dev"):
+        for cell in weights:
+            if not counts[(split,) + cell]:
+                raise ValueError("Missing eligible " + "/".join((split,) + cell) + " questions")
+    return {"/".join(key): value for key, value in sorted(counts.items())}
 
 
 class BalancedQuestionSampler:
@@ -220,13 +308,15 @@ Every effective update contains each required cell. Weighting by population mass
 divided by sampled cell count removes integer-rounding and corpus-size biases.
 No held-out row enters a sampling pool, even when supplied by the caller.
 """
-    def __init__(self, examples, stage, balance="task", retention_fraction=.25, seed=17):
-        self.weights = population_weights(stage, balance, retention_fraction)
+    def __init__(self, examples, stage, balance="task", retention_fraction=.25, seed=17, policy_pool_weights=None):
+        self.weights = population_weights(stage, balance, retention_fraction, policy_pool_weights)
         self.rng = random.Random(seed)
         self.pools = {cell: [] for cell in self.weights}
         for ex in examples:
-            cell = (ex["task"], ex["record_role"])
-            if ex["split"] == "train" and cell in self.pools and target_for(ex, objective_for(ex)) is not None:
+            if ex["split"] != "train" or (ex["task"], ex["record_role"]) not in {key[:2] for key in self.weights}:
+                continue
+            cell = sampling_cell(ex, self.weights)
+            if target_for(ex, objective_for(ex)) is not None:
                 self.pools[cell].append(ex)
         missing = ["/".join(cell) for cell, pool in self.pools.items() if not pool]
         if missing:
@@ -436,13 +526,21 @@ def mixed_question_loss(logits, examples, stage, critic_loss, reward_samples=32,
 
 def summarize_predictions(rows, weights, require_all=False):
     """Deterministic metrics; policy matching and observed-event quality stay separate."""
-    cells = defaultdict(list)
+    cells, pools, sources = defaultdict(list), defaultdict(list), defaultdict(list)
+    cell_sources = defaultdict(set)
     excluded = Counter()
+    pool_excluded = Counter()
     for row in rows:
         cell = (row["task"], row["record_role"])
+        active = cell in {key[:2] for key in weights}
+        pool = sampling_cell(row, weights) if active else None
+        source = row.get("policy_target_kind") or ("api_policy_distribution" if cell[1] == "policy" else "observed_outcome")
+        cell_sources[cell].add(source)
         target, logits = row.get("training_target"), row["student_logits"]
         if target is None:
             excluded[cell] += 1
+            if pool is not None:
+                pool_excluded[pool] += 1
             continue
         metrics = distribution_metrics(target, logits)
         top = max(range(len(logits)), key=logits.__getitem__)
@@ -452,19 +550,28 @@ def summarize_predictions(rows, weights, require_all=False):
         if row["record_role"] == "outcome":
             metrics["observed_accuracy"] = float(top == row["gold_index"])
         cells[cell].append(metrics)
+        sources[(row["task"], row["record_role"], source)].append(metrics)
+        if pool is not None:
+            pools[pool].append(metrics)
     by_cell = {}
     for cell in sorted(set(cells) | set(excluded)):
         values = cells[cell]
         bucket = {"questions": len(values), "excluded_questions": excluded[cell],
-                  "objective": "api_policy_distribution" if cell[1] == "policy" else "observed_outcome"}
+                  "objective": next(iter(cell_sources[cell])) if len(cell_sources[cell]) == 1 else "mixed_policy_supervision"}
         if values:
             for key in values[0]:
                 bucket[key] = math.fsum(value[key] for value in values) / len(values)
         by_cell["/".join(cell)] = bucket
-    missing = [cell for cell in weights if not cells[cell]]
+    by_pool, by_source = {}, {}
+    for destination, groups in ((by_pool, pools), (by_source, sources)):
+        for key, values in groups.items():
+            if values:
+                destination["/".join(key)] = {"questions": len(values),
+                    **{metric: math.fsum(value[metric] for value in values) / len(values) for metric in values[0]}}
+    missing = [cell for cell in weights if not pools[cell]]
     if require_all and missing:
         raise ValueError("Dev selection lacks eligible task/role cells: " + ", ".join("/".join(c) for c in missing))
-    selection = None if missing else math.fsum(weights[cell] * by_cell["/".join(cell)]["ce"] for cell in weights)
+    selection = None if missing else math.fsum(weights[cell] * by_pool["/".join(cell)]["ce"] for cell in weights)
     by_role = {}
     for role in ROLES:
         buckets = [bucket for cell, bucket in by_cell.items() if cell.endswith("/" + role) and bucket["questions"]]
@@ -476,7 +583,9 @@ def summarize_predictions(rows, weights, require_all=False):
             "selection_weights": {"/".join(k): v for k, v in weights.items()},
             "missing_selection_cells": ["/".join(cell) for cell in missing],
             "by_task_role": by_cell, "by_role_macro_task": by_role,
-            "notes": "Policy CE/TV/KL measure reference-distribution matching; observed Boolean CE/Brier measure event prediction. Binary Brier sums both classes."}
+            "by_selection_pool": by_pool, "by_task_role_target_source": by_source,
+            "excluded_by_selection_pool": {"/".join(k): v for k, v in sorted(pool_excluded.items())},
+            "notes": "Selection CE uses the explicitly declared population pools. Other task/role metrics are question means within each task. Policy CE/TV/KL measure API or expert target matching, not observed success; target sources are reported separately. Observed Boolean CE/Brier measure event prediction. Binary Brier sums both classes."}
 
 
 def evaluate_unified(model, examples, pad_token, args, weights, path=None, require_all=False):
@@ -495,7 +604,9 @@ def evaluate_unified(model, examples, pad_token, args, weights, path=None, requi
                 row.update(task=ex["task"], record_role=ex["record_role"],
                            continuation_policy_id=ex["continuation_policy_id"],
                            training_target=target_for(ex, objective_for(ex)),
-                           target_objective=objective_for(ex))
+                           target_objective=objective_for(ex),
+                           policy_target_kind=ex.get("policy_target_kind"), scenario=ex.get("scenario"),
+                           target_transform=target_transform(ex))
                 rows.append(row)
     if path:
         Path(path).write_text("".join(json.dumps(row, ensure_ascii=False, allow_nan=False) + "\n" for row in rows), encoding="utf-8")
@@ -510,6 +621,7 @@ def parse_args(argv=None):
     parser.add_argument("--stage", choices=["sft", "critic"], required=True)
     parser.add_argument("--loss", choices=LOSSES, help="SFT defaults to CE; critic defaults to paired_brier_pg; retention always CE")
     parser.add_argument("--balance", choices=["task", "task_role"], default="task")
+    parser.add_argument("--policy-pool-weights", help="JSON file of absolute SFT pool weights; preserves each task's one-third mass")
     parser.add_argument("--retention-fraction", type=float, default=.25, help="Policy population mass in critic/task mode; task_role fixes it to .5")
     parser.add_argument("--reward-samples", type=int, default=32)
     parser.add_argument("--steps", type=int, default=300)
@@ -536,7 +648,11 @@ def parse_args(argv=None):
     args.loss = args.loss or ("ce" if args.stage == "sft" else "paired_brier_pg")
     if args.stage == "sft" and args.loss != "ce":
         parser.error("SFT policy distribution supervision uses CE; event losses belong to --stage critic")
-    weights = population_weights(args.stage, args.balance, args.retention_fraction)
+    try:
+        args.resolved_policy_pool_weights = read_json(args.policy_pool_weights) if args.policy_pool_weights else None
+        weights = population_weights(args.stage, args.balance, args.retention_fraction, args.resolved_policy_pool_weights)
+    except (ValueError, OSError) as exc:
+        parser.error(str(exc))
     if min(args.steps, args.microbatch_questions, args.max_length, args.eval_every) <= 0 or args.head_steps < 0 or args.max_microbatch_tokens < 0:
         parser.error("Steps, batch and token limits must be valid positive sizes")
     if args.batch_questions < len(weights) or args.reward_samples < 2:
@@ -559,18 +675,16 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     records, manifest, files, schema_audit = read_unified_dataset(args.input)
-    weights = population_weights(args.stage, args.balance, args.retention_fraction)
+    weights = population_weights(args.stage, args.balance, args.retention_fraction, args.resolved_policy_pool_weights)
     td_index, td_audit = None, None
     if args.td_episodes:
         from unified_td import load_td_index
         td_index, td_audit = load_td_index(args.td_episodes, records, manifest, args.td_n_step)
-    for split in ("train", "dev"):
-        for task, role in weights:
-            if not schema_audit["eligible_by_split_task_role"].get(f"{split}/{task}/{role}", 0):
-                raise ValueError(f"Missing eligible {split}/{task}/{role} questions")
+    sampling_audit = validate_sampling_pools(records, weights)
     if args.validate_only:
         print(json.dumps({**schema_audit, "stage": args.stage, "loss": args.loss,
                           "population_weights": {"/".join(k): v for k, v in weights.items()},
+                          "eligible_by_split_sampling_pool": sampling_audit,
                           "td_enabled": bool(args.td_weight), "td_audit": td_audit}, ensure_ascii=False))
         return
     out = Path(args.output_dir)
@@ -589,7 +703,8 @@ def main(argv=None):
         model.backbone.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
     examples, target_audit = prepare_unified_examples(records, tokenizer, args.max_length)
     splits = {split: [ex for ex in examples if ex["split"] == split] for split in SPLITS}
-    sampler = BalancedQuestionSampler(examples, args.stage, args.balance, args.retention_fraction, args.seed)
+    sampler = BalancedQuestionSampler(examples, args.stage, args.balance, args.retention_fraction, args.seed,
+                                      args.resolved_policy_pool_weights)
     for split_examples in splits.values():
         pack_complete_questions(split_examples, args.microbatch_questions, args.max_microbatch_tokens)
     td_provider = (TDTargetProvider(model, td_index, splits["train"], tokenizer, args)
@@ -604,10 +719,12 @@ def main(argv=None):
               "implementation_sha256": file_sha256(__file__),
               "continuation_policy_id": schema_audit["continuation_policy_id"],
               "population_weights": {"/".join(k): v for k, v in weights.items()},
+              "policy_pool_weights_sha256": file_sha256(args.policy_pool_weights) if args.policy_pool_weights else None,
+              "eligible_by_split_sampling_pool": sampling_audit,
               "sampling": "stratified with replacement; per-cell exact population weights; train rows only",
               "parameter_storage": "float32", "forward_autocast": args.precision,
               "objective": ("Choice full-distribution CE plus observed Boolean MC Brier and frozen-policy soft TD Brier"
-                            if td_provider else "Choice API full-distribution CE plus observed Boolean event loss"),
+                            if td_provider else "Choice CE with explicit API or expert targets plus observed Boolean event loss"),
               "selection": "minimum fixed population-weighted dev CE including initial checkpoint; test only after selection",
               "temperature": 1.0, "temperature_fitted": False,
               "deps": {name: importlib.metadata.version(name) for name in ("torch", "transformers", "safetensors")},
@@ -695,6 +812,7 @@ def main(argv=None):
                 "loss_is_score_function_surrogate": args.loss == "paired_brier_pg",
                 "gradient_norm_before_clip": float(grad_norm), "microbatches": len(groups),
                 "sample_counts": {"/".join(k): v for k, v in sorted(cells.items())},
+                "sample_pool_counts": {"/".join(k): v for k, v in sorted(Counter(sampling_cell(ex, weights) for ex in batch).items())},
                 "batch_question_ids_sha256": hashlib.sha256("\n".join(ex["id"] for ex in batch).encode()).hexdigest(),
                 "elapsed_seconds": time.perf_counter() - started,
                 "online_compute": online_step,
