@@ -13,7 +13,9 @@ const HELP = `Usage:
     --work runs/readme_autoplay_v1 --manifest results/readme_autoplay_v1/capture_manifest.json \\
     --playwright-module /path/to/playwright/index.mjs --chrome /path/to/chrome --ffmpeg /path/to/ffmpeg
 
-Creates maze_unified_autoplay.gif and predict_position_unified_autoplay.gif.
+Creates maze_unified_autoplay.gif and predict_position_unified_autoplay.gif by default.
+Use --tasks basic to create only basic_unified_autoplay.gif; task names may be comma-separated.
+Use --fps 10 for a smaller GIF; the default frame rate is 12.5.
 Every displayed state is an original webpage render on a shared physical timeline.
 The existing website, recordings, and output files are never modified.
 `;
@@ -21,7 +23,7 @@ if (process.argv.includes('--help')) { console.log(HELP); process.exit(0); }
 const args = {};
 for (let index = 2; index < process.argv.length; index += 2) {
   const key = process.argv[index];
-  assert.ok(['--web-root', '--output', '--work', '--manifest', '--playwright-module', '--chrome', '--ffmpeg'].includes(key), `Unknown option: ${key}`);
+  assert.ok(['--web-root', '--output', '--work', '--manifest', '--playwright-module', '--chrome', '--ffmpeg', '--tasks', '--fps'].includes(key), `Unknown option: ${key}`);
   assert.ok(process.argv[index + 1] && !process.argv[index + 1].startsWith('--'), `Missing value: ${key}`);
   assert.ok(!(key.slice(2) in args), `Duplicate option: ${key}`);
   args[key.slice(2)] = process.argv[index + 1];
@@ -33,19 +35,32 @@ const manifestPath = path.resolve(args.manifest || 'results/readme_autoplay_v1/c
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const exists = async filename => { try { await fs.lstat(filename); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; } };
 const CHECKPOINT = 'f68c47d66998231b86b7e91b4ed5e82ae23acf104c8b7cd6d165c3ac7b7ffe1b';
-const ORDER = ['jev', 'nanojev', 'base'], FPS = 12.5, OUTPUT_WIDTH = 1200;
+const ORDER = ['jev', 'nanojev', 'base'], FPS = Number(args.fps || 12.5), OUTPUT_WIDTH = 1200;
+assert.ok(Number.isFinite(FPS) && FPS >= 1 && FPS <= 50 && Number.isInteger(100 / FPS),
+  'The GIF frame rate must be between 1 and 50 and have an exact integer-centisecond frame delay.');
 const INITIAL_FRAMES = Math.round(FPS), FINAL_FRAMES = Math.round(2 * FPS);
-const jobs = [
+const availableJobs = [
   {id: 'maze', html: 'side-by-side.html', data: 'side_by_side_results.json', api: 'nanojevComparison',
-    hash: '#maze', caseId: 'maze:ood:50:24310922', rate: 256, selectorSpeed: '256', output: 'maze_unified_autoplay.gif'},
+    hash: '#maze', caseId: 'maze:ood:50:24310922', rate: 256, selectorSpeed: '256', output: 'maze_unified_autoplay.gif',
+    rendererAssets: ['side-by-side.css', 'side-by-side.js']},
   {id: 'predict_position', html: 'predict-position.html', data: 'predict_position_results.json', api: 'nanojevShooting',
-    hash: '', caseId: 'test-sonic_predict_position-9300720', rate: 17.5, selectorSpeed: '0.5', output: 'predict_position_unified_autoplay.gif'},
+    hash: '', caseId: 'test-sonic_predict_position-9300720', rate: 17.5, selectorSpeed: '0.5', output: 'predict_position_unified_autoplay.gif',
+    rendererAssets: ['predict-position.css', 'predict-position.js', 'shooting.css', 'shooting.js']},
+  {id: 'basic', html: 'index.html', data: 'shooting_results.json', api: 'nanojevShooting',
+    hash: '', caseId: 'test-appo_basic-9030060', rate: 17.5, selectorSpeed: '0.5', output: 'basic_unified_autoplay.gif',
+    rendererAssets: ['predict-position.css', 'basic.js', 'shooting.css', 'shooting.js']},
 ];
+const selectedTasks = (args.tasks || 'maze,predict_position').split(',');
+assert.equal(new Set(selectedTasks).size, selectedTasks.length, 'Task names must be unique.');
+const jobs = selectedTasks.map(id => {
+  const job = availableJobs.find(item => item.id === id);
+  assert.ok(job, `Unknown task: ${id}`);
+  return job;
+});
 assert.ok(!await exists(work), `Use a new work directory: ${work}`);
 assert.ok(!await exists(manifestPath), `Refusing to overwrite ${manifestPath}`);
 for (const job of jobs) assert.ok(!await exists(path.join(output, job.output)), `Refusing to overwrite ${job.output}`);
-const assetNames = ['side-by-side.html', 'side-by-side.css', 'side-by-side.js', 'side_by_side_results.json',
-  'predict-position.html', 'predict-position.css', 'predict-position.js', 'shooting.css', 'shooting.js', 'predict_position_results.json'];
+const assetNames = [...new Set(jobs.flatMap(job => [job.html, job.data, ...job.rendererAssets]))];
 const assets = new Map();
 for (const name of assetNames) assets.set(name, await fs.readFile(path.join(root, name)));
 for (const job of jobs) {
@@ -83,7 +98,7 @@ const manifest = {schema: 'nanojev-readme-autoplay-capture-v1', passed: false, s
   renderer_asset_sha256: Object.fromEntries([...assets].map(([name, bytes]) => [name, digest(bytes)])),
   rendering: 'Actual original webpage screenshots, cropped to the scene title, three model panels, and shared playback controls. No DOM or CSS changes.',
   encoding: 'Only spatial scaling and GIF color quantization; no interpolation or synthetic game frames.',
-  frame_rate: FPS, gif_frame_delay_centiseconds: 8, output_width: OUTPUT_WIDTH,
+  frame_rate: FPS, gif_frame_delay_centiseconds: 100 / FPS, output_width: OUTPUT_WIDTH,
   initial_hold_seconds: INITIAL_FRAMES / FPS, final_hold_seconds: FINAL_FRAMES / FPS,
   jobs: [], browser_checks: [], page_errors: [], failed_requests: []};
 const runFFmpeg = command => {
@@ -259,14 +274,14 @@ try {
     await context.close();
     const scale = `scale=${OUTPUT_WIDTH}:-2:flags=lanczos`;
     // The moving Doom scene needs a full-frame palette so static success colors survive quantization.
-    const paletteStatistics = job.id === 'predict_position' ? 'full' : 'diff';
-    const paletteSizes = job.id === 'predict_position' ? [256, 128, 96, 64] : [128, 96, 64];
+    const paletteStatistics = job.id === 'maze' ? 'diff' : 'full';
+    const paletteSizes = job.id === 'maze' ? [128, 96, 64] : [256, 128, 96, 64];
     let selectedFile;
     for (const colors of paletteSizes) {
       const palette = path.join(taskDirectory, `palette_${colors}.png`), candidate = path.join(taskDirectory, `${job.id}_${colors}.gif`);
-      runFFmpeg(['-loglevel', 'error', '-n', '-framerate', '25/2', '-i', path.join(frames, 'frame_%06d.png'),
+      runFFmpeg(['-loglevel', 'error', '-n', '-framerate', String(FPS), '-i', path.join(frames, 'frame_%06d.png'),
         '-vf', `${scale},palettegen=max_colors=${colors}:reserve_transparent=1:stats_mode=${paletteStatistics}`, '-frames:v', '1', '-update', '1', palette]);
-      runFFmpeg(['-loglevel', 'error', '-n', '-framerate', '25/2', '-i', path.join(frames, 'frame_%06d.png'), '-i', palette,
+      runFFmpeg(['-loglevel', 'error', '-n', '-framerate', String(FPS), '-i', path.join(frames, 'frame_%06d.png'), '-i', palette,
         '-lavfi', `[0:v]${scale}[scaled];[scaled][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle`,
         '-frames:v', String(job.frameSteps.length), '-gifflags', '+offsetting+transdiff', '-loop', '0', candidate]);
       const bytes = await fs.readFile(candidate), parsed = inspectGif(bytes);

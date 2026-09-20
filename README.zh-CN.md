@@ -4,7 +4,7 @@
 
 **一个 0.6B 并行决策模型：输入状态与问题，直接得到完整概率分布，无需生成答案 token。**
 
-[体验 ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze 与 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+[体验 ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1) · [Maze 与 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
 
 **现在支持 ViZDoom：** 同一个 checkpoint 完成 Basic 的瞄准射击、Predict Position 的移动目标火箭射击，同时支持 Maze 和 Snake。
 
@@ -23,11 +23,11 @@
 
 **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)、NanoJev 和未微调 Qwen** 的真实网页回放。下方动图自动循环，点击即可进入交互播放器。四款演示使用同一个当前 NanoJev checkpoint。交互开发站目前需要访问权限；也可按下方命令在本地播放所有录制案例。
 
-### ViZDoom Predict Position · 把握开火时机
+### ViZDoom Basic · 瞄准，再开火
 
-[![NanoJev 等待后命中移动目标，Jev 和未微调 Qwen 未命中，三组按同一游戏时钟播放](assets/predict_position_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
+[![NanoJev 调整位置后一枪消灭目标，Jev 和未微调 Qwen 未能消灭目标，三组按同一游戏时钟并排播放](assets/basic_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
 
-一个移动目标，一枚火箭。NanoJev 在 **5.06 秒**发射、**5.94 秒**命中；[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 和未微调 Qwen 在 **1.40 秒**发射后落空。播放器保留两个精选 NanoJev 独胜案例，展示原始画面、动作概率与实际发射时刻。
+移动到位，对准目标，再开火。NanoJev 在 **1.40 秒内一枪消灭目标**；[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 和未微调 Qwen 各开 **19 枪**，直到时限结束仍未消灭目标。三栏按同一游戏时钟同步播放，展示原始画面与动作概率。
 
 ### 找到出口 · 50×50 Maze
 
@@ -35,7 +35,7 @@
 
 NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 用 **2,738 次**，未微调 Qwen 用 **4,726 次**。三组都通过局部安全概率驱动相同探索代码，并记住已经走通的路径。
 
-[打开 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [打开 ViZDoom Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
+[打开 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [打开 Predict Position](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
 
 ## 核心能力
 
@@ -135,7 +135,7 @@ python scripts/serve_decisions.py \
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-打开 **http://127.0.0.1:8080/dev/side-by-side.html?autoplay=1#maze** 或 **http://127.0.0.1:8080/dev/predict-position.html?autoplay=1**。
+打开 **http://127.0.0.1:8080/dev/?autoplay=1** 体验 ViZDoom Basic，或打开 **http://127.0.0.1:8080/dev/side-by-side.html?autoplay=1#maze** 体验迷宫。
 
 ## 开发文档
 

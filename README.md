@@ -4,7 +4,7 @@
 
 **A 0.6B parallel decision model: states and questions in, complete probability distributions out. Zero output-token decoding.**
 
-[Play ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze & Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+[Play ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1) · [Maze & Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
 
 **Now playing ViZDoom:** one shared checkpoint handles Basic aiming and Predict Position's moving-target rocket shots, alongside Maze and Snake.
 
@@ -23,11 +23,11 @@
 
 Real browser replays of **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev), NanoJev and Untuned Qwen**. These animations loop automatically; click either one to open its interactive player. All four demos use the same current NanoJev checkpoint. The interactive development site currently requires access; all recordings can also be played locally using the commands below.
 
-### ViZDoom Predict Position · Choose the moment
+### ViZDoom Basic · Aim, then fire
 
-[![NanoJev waits and hits a moving target while Jev and Untuned Qwen miss, shown on the same game clock](assets/predict_position_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
+[![NanoJev eliminates the target with one shot while Jev and Untuned Qwen fail, shown side by side on the same game clock](assets/basic_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
 
-One moving target, one rocket. NanoJev fires at **5.06 s** and hits at **5.94 s**; [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) and Untuned Qwen fire at **1.40 s** and miss. The player includes two selected NanoJev wins, with original frames, action probabilities and actual shot times.
+Move into position, line up the target, fire. NanoJev eliminates the target with **one shot in 1.40 s**; [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) and Untuned Qwen each fire **19 shots** without an elimination before the deadline. The three panels share the same game clock and show original frames and action probabilities.
 
 ### Find the exit · 50×50 Maze
 
@@ -35,7 +35,7 @@ One moving target, one rocket. NanoJev fires at **5.06 s** and hits at **5.94 s*
 
 NanoJev reaches the exit in **225 attempts**, versus **2,738** for [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) and **4,726** for Untuned Qwen. Each system combines local safety probabilities with the same exploration code and remembered open paths.
 
-[Play Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [Play ViZDoom Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
+[Play Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [Play Predict Position](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
 
 ## What NanoJev does
 
@@ -135,7 +135,7 @@ To explore the recorded games locally:
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 ```
 
-Open **http://127.0.0.1:8080/dev/side-by-side.html?autoplay=1#maze** or **http://127.0.0.1:8080/dev/predict-position.html?autoplay=1**.
+Open **http://127.0.0.1:8080/dev/?autoplay=1** for ViZDoom Basic or **http://127.0.0.1:8080/dev/side-by-side.html?autoplay=1#maze** for Maze.
 
 ## Development notes
 
