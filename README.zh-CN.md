@@ -74,6 +74,17 @@
 
 ## 更大的游戏与校准决策
 
+**新增：专家数据混合 SFT。** 同一个统一模型将 Predict Position 测试成功数从
+**11/128 提升到 27/128**，Snake 从 **6/8 提升到 8/8**，Basic 保持 **128/128**。
+相同条件下，[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
+在这三项任务上分别为 11/128、8/8 和 56/128。Maze 为 NanoJev 4/10、Jev 7/10。
+四组系统均完成相同的 548 个测试及 OOD 案例，所有轨迹均通过独立重放。
+
+新增数据包含 **6,788 条 Predict Position 训练问题**，来自已验证的视觉专家，
+并保留原有 Maze、Snake 与 Basic 数据。
+[完整测试及 OOD 结果、开发模型](docs/SONIC_PREDICT_POSITION_RESULTS.md)
+· [专家数据采集与混合 SFT 流程](docs/SONIC_PREDICT_POSITION.md)
+
 **统一游戏训练：** 一个共享 checkpoint 通过同一套状态与问题接口支持 Maze、Snake
 以及 ViZDoom Basic / Predict Position。首轮已完成策略 SFT、冻结策略的终局结果学习、
 真实游戏评测，以及下一轮数据采集。

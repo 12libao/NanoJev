@@ -73,6 +73,19 @@ Measured in the running service: **6 states · 18 questions · 44 candidate path
 
 ## Larger games and calibrated decisions
 
+**New: mixed expert SFT.** One unified checkpoint improves Predict Position
+test success from **11/128 to 27/128** and Snake from **6/8 to 8/8**, while
+retaining **128/128 Basic** success. The matched
+[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) run scores
+11/128, 8/8 and 56/128 on those tasks. Maze remains 4/10 for NanoJev and 7/10
+for Jev. All four systems complete the same 548 test/OOD cases, with every
+trajectory independently replayed.
+
+The new dataset adds **6,788 Predict Position training questions** from a
+validated visual expert and preserves the existing Maze, Snake and Basic data.
+[Full test/OOD results and development checkpoint](docs/SONIC_PREDICT_POSITION_RESULTS.md)
+· [Expert collection and mixed SFT pipeline](docs/SONIC_PREDICT_POSITION.md)
+
 **Unified game training:** one shared checkpoint learns Maze, Snake, and
 ViZDoom Basic / Predict Position through the same state-and-question interface.
 The first complete cycle includes policy SFT, frozen-policy outcome learning,

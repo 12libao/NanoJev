@@ -5,6 +5,10 @@ Maze, Snake and Basic decision model. One Qwen3-0.6B backbone and dynamic candid
 scoring head answer all four decision pools. Each candidate receives a score;
 softmax over the offered candidates gives the action distribution.
 
+[Completed results, selected checkpoint and reproduction](SONIC_PREDICT_POSITION_RESULTS.md)
+cover the full 548-case comparison against the previous NanoJev model, Jev and
+untuned Qwen.
+
 The visual expert is the ordinary no-sound Predict Position policy released by
 [Sonic Doom](https://github.com/thainv0212/sonic_doom). Its CNN and recurrent GRU
 receive RGB frames. Sound, Auto Aim and Sonic Aim assistance are disabled.
@@ -32,6 +36,12 @@ The frozen cohort contains 896 episodes:
 | Calibration | 64 | 4 | Up to 4 observations |
 | Test | 128 | 4 | Up to 4 observations |
 | OOD | 128 | 8 | Up to 4 observations |
+
+Collection completed with **17,498 recorded decisions**. Preparation retains
+**11,173 Predict Position questions**, including **6,788 training questions**,
+and preserves **7,587 existing Maze, Snake and Basic rows** byte for byte across
+the five splits. Each hard/soft dataset contains 18,760 rows. The policy trainer
+uses 10,893 training questions that pass the existing target-validity filter.
 
 Splits use distinct scenario/seed groups. The OOD split changes decision cadence;
 the teacher advances its GRU once per eight-tick decision. Full traces retain
