@@ -24,7 +24,7 @@ The score strip uses the entire frozen cohort, separately from the selected illu
 
 The three systems share case definitions, visible-state questions, candidate actions and the epsilon-greedy controller (`epsilon=0.1`, sampling seed `17`). Untuned Qwen uses original `Qwen/Qwen3-0.6B` weights at revision `c1899de289a04d12100db370d81485cdf75e47ca` and its vocabulary head. Displayed probabilities precede the common exploration step.
 
-The [Predict Position demo](PREDICT_POSITION_DEMO.md) features the same checkpoint waiting to hit a moving target with its single rocket. Maze shows a **16×16** run completed in **147 steps** by NanoJev and **154** by Jev; Qwen reaches the **160-step limit**. Snake shows NanoJev reaching the **three-food target in 40 steps**, Jev in **126**, and Qwen colliding at step **6**. The Snake objective is collecting three food items.
+The [Predict Position demo](PREDICT_POSITION_DEMO.md) features two wins from the same checkpoint: waiting to hit a moving target and turning before the shot. Maze uses the original **50×50** challenge with local safety questions and remembered edges. Snake returns to the **12×12, 256-step** challenge: keep growing and collect food throughout the full game. The shared Snake controller filters immediate collisions and available food routes, then asks each model to choose among the remaining actions. In these restored challenges, current NanoJev completes the maze in **225 attempts** and collects **30 food items** across the full Snake game.
 
 ## Export and verify
 
@@ -40,4 +40,4 @@ python3 -m http.server 8081 --bind 127.0.0.1 --directory web
 
 Open `http://127.0.0.1:8081/dev/`. Export paths must be fresh; the recorded experiment files are inputs. `--validate-only` checks sources, model identity and selected outcomes without rendering.
 
-`scripts/check_unified_development_demo.mjs` checks all four tasks, checkpoint identity, displayed frames, recorded outcomes, controls, navigation and desktop/mobile layout. `scripts/stage_development_site.py` stages the independent development assets and requires matching checkpoint hashes across the four tasks. The hosting bundle contains viewer code and recorded media.
+`scripts/check_hard_development_demo.mjs` checks all four tasks, checkpoint identity, displayed frames, recorded outcomes, controls, navigation and desktop/mobile layout. `scripts/stage_development_site.py` stages the independent development assets and requires matching checkpoint hashes across the four tasks. The hosting bundle contains viewer code and recorded media.

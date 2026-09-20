@@ -1,37 +1,27 @@
 {
   "schema": "nanojev-predict-position-illustrations-v1",
   "default_case_id": "test-sonic_predict_position-9300720",
-  "selection_rule": "Five outcome-selected test illustrations: a NanoJev-only success with an extended wait before its actual shot, a NanoJev-only success with early turns, a shared success, a NanoJev failure while both baselines succeed, and a shared failure. These illustrations do not estimate aggregate performance; the page also reports every one of the 128 frozen test cases and all 128 OOD cases separately.",
+  "selection_rule": "Two outcome-selected Predict Position test illustrations in which NanoJev succeeds and both Jev and Untuned Qwen fail: an extended wait before the shot, and a turn before firing. Full test and OOD scores each include all 128 frozen cases and are reported separately from these selected wins.",
   "cases": [
     {
       "id": "test-sonic_predict_position-9300720",
       "title": "Wait for the window",
       "description": "NanoJev waits while the target moves, then lands its one shot. Jev and Untuned Qwen fire earlier and miss.",
-      "expected_success": {"jev": false, "nanojev": true, "base": false}
+      "expected_success": {
+        "jev": false,
+        "nanojev": true,
+        "base": false
+      }
     },
     {
       "id": "test-sonic_predict_position-9300738",
       "title": "Turn into the shot",
       "description": "NanoJev turns before firing and hits the moving target. Both comparison policies miss this seed.",
-      "expected_success": {"jev": false, "nanojev": true, "base": false}
-    },
-    {
-      "id": "test-sonic_predict_position-9300760",
-      "title": "All three connect",
-      "description": "All three policies hit the target, with different shot timing.",
-      "expected_success": {"jev": true, "nanojev": true, "base": true}
-    },
-    {
-      "id": "test-sonic_predict_position-9300678",
-      "title": "A miss to learn from",
-      "description": "Jev and Untuned Qwen hit this seed; NanoJev misses.",
-      "expected_success": {"jev": true, "nanojev": false, "base": true}
-    },
-    {
-      "id": "test-sonic_predict_position-9300640",
-      "title": "A shared challenge",
-      "description": "All three policies spend their one shot without a hit.",
-      "expected_success": {"jev": false, "nanojev": false, "base": false}
+      "expected_success": {
+        "jev": false,
+        "nanojev": true,
+        "base": false
+      }
     }
   ]
 }

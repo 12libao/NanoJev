@@ -82,7 +82,7 @@ def main():
     allowed = {relative.as_posix() for _, relative in files} | {'source_manifest.json'}
     unexpected = [p.relative_to(dist).as_posix() for p in dist.rglob('*')
                   if p.is_file() and p.relative_to(dist).as_posix() not in allowed]
-    # Retire only unchanged Basic atlases owned by the previous staging receipt.
+    # Retire only unchanged game atlases owned by the previous staging receipt.
     # Unknown files or locally edited assets are never removed.
     previous_manifest = dist / 'source_manifest.json'
     previous = json.loads(previous_manifest.read_text()) if previous_manifest.exists() else {}
@@ -90,8 +90,10 @@ def main():
     obsolete = []
     for name in unexpected:
         row, path = owned.get(name), dist / name
-        if (not row or not name.startswith('media/shooting_') or not name.endswith('.webp')
-                or not row.get('source', '').startswith('dev/media/shooting_') or path.is_symlink()
+        owned_prefix = next((prefix for prefix in ('media/shooting_', 'media/predict_position_')
+                             if name.startswith(prefix)), None)
+        if (not row or not owned_prefix or not name.endswith('.webp')
+                or not row.get('source', '').startswith('dev/' + owned_prefix) or path.is_symlink()
                 or hashlib.sha256(path.read_bytes()).hexdigest() != row.get('sha256')):
             raise ValueError('Unexpected or modified pre-existing development asset: ' + name)
         obsolete.append(path)
@@ -136,7 +138,7 @@ def main():
                                  'public_site_modified': False}, indent=2) + '\n')
     print(json.dumps({'project': str(project), 'assets': len(records),
                       'static_bytes': sum(r['bytes'] for r in records),
-                      'retired_basic_atlases': len(obsolete)}))
+                      'retired_game_atlases': len(obsolete)}))
 
 
 if __name__ == '__main__':

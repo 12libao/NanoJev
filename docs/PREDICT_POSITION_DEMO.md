@@ -29,10 +29,11 @@ at the actual launch tick. Selecting the `shoot` action may precede launch due
 to the native weapon animation. The shot buttons use observed ammunition
 decreases.
 
-Five selected test cases illustrate different outcomes: a later NanoJev hit,
-a hit after turning, a shared success, a NanoJev miss while both comparisons
-hit, and a shared failure. Each comparison resets all models to the same seed
-and uses its complete recorded trajectory.
+The case picker contains two selected NanoJev wins: **Wait for the window**
+(seed 9300720) and **Turn into the shot** (seed 9300738). Jev and Untuned Qwen
+miss in both. Each comparison resets all models to the same seed and uses its
+complete recorded trajectory. The score strip below still covers all 128 test
+episodes.
 
 ## Complete test cohort
 
@@ -80,4 +81,6 @@ and Playwright paths; the video exporter additionally accepts FFmpeg.
 
 The [media receipt](../results/predict_position_demo_v1/build_manifest.json)
 records source files, checkpoint identity, runtime and asset hashes. The
-separate development hosting bundle contains the viewer and recorded media.
+[current two-win selection receipt](../results/predict_position_wins_v2/filter_manifest.json)
+verifies that the retained frames and image pixels are unchanged. The separate
+development hosting bundle contains the viewer and recorded media.

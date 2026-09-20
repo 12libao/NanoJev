@@ -128,7 +128,8 @@
       card.querySelector('.model-role').textContent = system.id === 'nanojev' ? '0.6B · UNIFIED MODEL · STEP 400' :
         system.id === 'jev' ? 'JEV · API' : 'QWEN3-0.6B · UNTUNED';
       card.querySelector('.stat-label').textContent = 'Steps';
-      card.querySelector('.stat-secondary-label').textContent = example.game === 'snake' ? `Food / ${example.target_food || 3} target` : 'Collisions';
+      card.querySelector('.stat-secondary-label').textContent = example.game === 'snake' ?
+        (example.target_food ? `Food / ${example.target_food} target` : 'Food collected') : 'Collisions';
       const canvas = card.querySelector('canvas');
       canvas.setAttribute('aria-label', `${system.name}: ${example.game} recorded board`);
       // A consistent software raster path keeps captured replay pixels stable

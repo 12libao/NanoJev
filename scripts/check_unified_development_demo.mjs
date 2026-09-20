@@ -15,12 +15,14 @@ const EXPECTED_EPISODES = {
 const args = {};
 for (let index = 2; index < process.argv.length; index += 2) {
   const key = process.argv[index];
-  assert.ok(['--url', '--output', '--report'].includes(key), `Unknown option: ${key}`);
+  assert.ok(['--url', '--output', '--report', '--navigation-receipt', '--navigation-receipt-sha256'].includes(key), `Unknown option: ${key}`);
   assert.ok(process.argv[index + 1] && !process.argv[index + 1].startsWith('--'), `Missing value: ${key}`);
   assert.ok(!(key.slice(2) in args), `Duplicate option: ${key}`);
   args[key.slice(2)] = process.argv[index + 1];
 }
 assert.ok(args.url && args.output, 'Use --url DEVELOPMENT_DIRECTORY_URL --output NEW_SCREENSHOT_DIRECTORY [--report NEW_REPORT_FILE].');
+const hardMode = Boolean(args['navigation-receipt']);
+assert.equal(hardMode, Boolean(args['navigation-receipt-sha256']), 'Hard-task verification requires both the navigation receipt and its independently pinned SHA256.');
 assert.ok(process.env.PLAYWRIGHT_MODULE && process.env.CHROME_EXECUTABLE, 'Set PLAYWRIGHT_MODULE and CHROME_EXECUTABLE.');
 const base = new URL(args.url);
 assert.ok(['http:', 'https:'].includes(base.protocol));
@@ -30,12 +32,25 @@ await fs.mkdir(path.dirname(output), {recursive: true}); await fs.mkdir(output, 
 const reportPath = path.resolve(args.report || path.join(output, 'browser_check.json'));
 try { await fs.lstat(reportPath); throw new Error(`Refusing to overwrite ${reportPath}`); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
-const report = {schema: 'nanojev-unified-development-browser-check-v2', passed: false, url: base.href,
+const report = {schema: hardMode ? 'nanojev-hard-development-browser-check-v3' : 'nanojev-unified-development-browser-check-v2', passed: false, url: base.href,
   started_at: new Date().toISOString(), expected_checkpoint_sha256: EXPECTED_CHECKPOINT,
-  expected_source_episodes_sha256: EXPECTED_EPISODES, model_calls: 0, api_calls: 0,
+  expected_source_episodes_sha256: EXPECTED_EPISODES, source_episode_scope: hardMode ? 'Basic and Predict Position only; navigation is independently receipt-bound.' : 'All four tasks.',
+  model_calls: 0, api_calls: 0,
   datasets: {}, tasks: [], navigation: [], screenshots: {}, page_errors: [], failed_asset_requests: []};
 let browser;
 try {
+  let navigationReceipt;
+  if (hardMode) {
+    assert.match(args['navigation-receipt-sha256'], /^[a-f0-9]{64}$/);
+    const bytes = await fs.readFile(path.resolve(args['navigation-receipt']));
+    assert.equal(digest(bytes), args['navigation-receipt-sha256'], 'Navigation receipt must equal its independently pinned SHA256.');
+    navigationReceipt = JSON.parse(bytes.toString());
+    assert.equal(navigationReceipt.passed, true, 'Navigation export/replay receipt must have passed.');
+    assert.equal(navigationReceipt.selected_checkpoint_sha256, EXPECTED_CHECKPOINT);
+    assert.match(navigationReceipt.export_sha256, /^[a-f0-9]{64}$/);
+    report.navigation_receipt = {file: args['navigation-receipt'], sha256: digest(bytes),
+      export_sha256: navigationReceipt.export_sha256, selected_checkpoint_sha256: navigationReceipt.selected_checkpoint_sha256};
+  }
   const {chromium} = await import(pathToFileURL(path.resolve(process.env.PLAYWRIGHT_MODULE)).href);
   browser = await chromium.launch({headless: true, executablePath: process.env.CHROME_EXECUTABLE,
     args: ['--disable-background-networking', '--no-first-run', '--no-default-browser-check']});
@@ -51,7 +66,11 @@ try {
     assert.equal(response.status(), 200, `${filename} must load successfully.`);
     const raw = await response.body(), data = JSON.parse(raw.toString());
     assert.equal(data.protocol?.selected_checkpoint_sha256, EXPECTED_CHECKPOINT, `${filename} must use the current unified model.`);
-    assert.deepEqual(data.protocol.source_episodes_sha256, EXPECTED_EPISODES, `${filename} must use the same frozen final evaluation episodes.`);
+    if (hardMode && filename === 'side_by_side_results.json') {
+      assert.equal(digest(raw), navigationReceipt.export_sha256, 'Served hard navigation data must equal the independently verified export receipt.');
+    } else {
+      assert.deepEqual(data.protocol.source_episodes_sha256, EXPECTED_EPISODES, `${filename} must use the same frozen final evaluation episodes.`);
+    }
     report.datasets[filename] = {sha256: digest(raw), bytes: raw.length, checkpoint_sha256: data.protocol.selected_checkpoint_sha256,
       source_episodes_sha256: data.protocol.source_episodes_sha256};
   }
@@ -114,13 +133,45 @@ try {
   await ready('navigation');
   assert.deepEqual(navData.examples.map(example => example.game).sort(), ['maze', 'snake']);
   assert.equal((await page.evaluate(() => window.nanojevComparison.getSnapshot())).game, 'maze');
+  if (hardMode) {
+    const maze = navData.examples.find(example => example.game === 'maze');
+    const snake = navData.examples.find(example => example.game === 'snake');
+    assert.equal(maze.id, 'maze:ood:50:24310922'); assert.equal(maze.size, 50);
+    assert.equal(snake.id, 'snake:showcase:12:61005'); assert.equal(snake.size, 12);
+    assert.equal(snake.horizon, 256); assert.equal(snake.max_steps, 256);
+    assert.equal(maze.horizon, 5000); assert.equal(maze.max_steps, 5000);
+    assert.deepEqual(navigationReceipt.examples.map(example => example.case_id).sort(), navData.examples.map(example => example.id).sort());
+    for (const example of navData.examples) {
+      const receipt = navigationReceipt.examples.find(recorded => recorded.case_id === example.id);
+      assert.equal(receipt.game, example.game); assert.equal(receipt.passed, true);
+      assert.deepEqual(receipt.controller, navData.protocol.controllers[example.game]);
+      assert.equal(receipt.horizon, example.horizon); assert.equal(receipt.size, example.size);
+      assert.deepEqual(receipt.sources.map(source => source.system_id).sort(), ['base', 'jev', 'nanojev']);
+      assert.ok(example.systems.every(system => system.frames.length - 1 <= example.max_steps));
+      for (const system of example.systems) {
+        const source = receipt.sources.find(source => source.system_id === system.id);
+        assert.equal(source.passed, true);
+        assert.equal(source.initial_state_sha256, receipt.initial_state_sha256);
+        assert.equal(source.sha256, navData.protocol.source_recordings_sha256[example.game][system.id]);
+        assert.equal(source.verified_transitions, system.frames.length - 1);
+        assert.deepEqual(receipt.results[system.id], system.summary);
+        if (system.id !== 'nanojev') assert.equal(source.frames_unchanged_from_original_public, true);
+        assert.equal(system.summary.steps, system.frames.length - 1, 'Hard-task endpoint length must match its verified summary.');
+        assert.equal(system.summary.score, system.frames.at(-1).score, 'Hard-task final score must match its real terminal frame.');
+      }
+    }
+    report.hard_task_scope = {maze: {id: maze.id, size: maze.size, horizon: maze.horizon},
+      snake: {id: snake.id, size: snake.size, horizon: snake.horizon}};
+  }
   for (let exampleIndex = 0; exampleIndex < navData.examples.length; exampleIndex++) {
     const example = navData.examples[exampleIndex];
-    const result = await page.evaluate(({example, exampleIndex}) => {
+    const result = await page.evaluate(async ({example, exampleIndex, hardMode}) => {
       const max = Math.max(...example.systems.map(system => system.frames.length - 1));
       const finalCanvases = {}, directions = ['north', 'east', 'south', 'west'];
-      let compared = 0, frozen = 0;
+      let compared = 0, frozen = 0, frozenMetadata = 0;
       for (let step = 0; step <= max; step++) {
+        // Long 50x50 trajectories retain every metadata check while yielding to the browser event loop.
+        if (step > 0 && step % 50 === 0) await new Promise(resolve => setTimeout(resolve, 0));
         const snapshot = window.nanojevComparison.setFrame(exampleIndex, step);
         if (snapshot.globalStep !== step || snapshot.playing || snapshot.exampleId !== example.id) throw new Error('Navigation shared-step mismatch.');
         for (const source of example.systems) {
@@ -130,6 +181,13 @@ try {
             JSON.stringify(actual.frame) !== JSON.stringify(frame) || JSON.stringify(actual.summary) !== JSON.stringify(source.summary || {})) throw new Error('Navigation source frame/summary mismatch.');
           const card = document.querySelector(`.model-panel[data-system="${source.id}"]`);
           if (card.querySelector('.stat-steps').textContent !== String(local)) throw new Error('Navigation step display mismatch.');
+          if (card.querySelector('.board-status').hidden !== (local !== source.frames.length - 1)) throw new Error('Navigation terminal badge appears at the wrong source step.');
+          if (hardMode && local === source.frames.length - 1) {
+            const labels = {goal: 'Goal reached', goal_reached: 'Goal reached', horizon_survived: 'Survived',
+              trapped: 'Trapped', step_limit: 'Step limit', timeout: 'Step limit'};
+            const expectedLabel = labels[source.summary?.outcome];
+            if (expectedLabel && card.querySelector('.stat-status').textContent !== expectedLabel) throw new Error('Hard-task terminal status differs from the verified outcome.');
+          }
           if (example.game === 'snake' && card.querySelector('.stat-secondary').textContent !== String(frame.score)) throw new Error('Snake food score display mismatch.');
           if (local === source.frames.length - 1 && source.summary?.outcome === 'target_reached' &&
             card.querySelector('.stat-status').textContent !== 'Food target reached') throw new Error('Snake food-target terminal label mismatch.');
@@ -140,21 +198,36 @@ try {
             if (row.querySelector('.probability-value').textContent !== (expected === undefined ? '—' : `${(100 * expected).toFixed(1)}%`)) throw new Error('Navigation probability display mismatch.');
             if (row.classList.contains('chosen') !== (local > 0 && frame.action === directions[index])) throw new Error('Navigation executed action highlight mismatch.');
           });
-          if (local > 0 && (frame.forced === true || /forced/i.test(frame.decision_source || '')) &&
-            Object.keys(frame.probabilities || {}).length !== 0) throw new Error('Shared code moves must not reuse stale model probabilities.');
+          if (local > 0 && (frame.forced === true || /forced/i.test(frame.decision_source || ''))) {
+            const entries = Object.entries(frame.probabilities || {});
+            const codeOneHot = hardMode && entries.length === 1 && entries[0][0] === frame.action && entries[0][1] === 1;
+            if (entries.length !== 0 && !codeOneHot) throw new Error('Shared code moves must not reuse stale model probabilities.');
+            if (hardMode && !/shared planner move|code.forced move/i.test(card.querySelector('.probability-kind').textContent)) throw new Error('Deterministic code action must be labelled separately from model probabilities.');
+          }
           if (local === source.frames.length - 1) {
-            const pixels = card.querySelector('canvas').toDataURL('image/png');
-            if (source.id in finalCanvases && finalCanvases[source.id] !== pixels) throw new Error('Navigation final canvas did not freeze.');
-            finalCanvases[source.id] = pixels;
-            if (step > local) frozen++;
+            if (step > local) frozenMetadata++;
+            // Bitmap equality at the terminal transition, the next shared step, and the final shared step.
+            // Complete source-frame equality above still runs at every intervening step.
+            if (step === local || step === local + 1 || step === max) {
+              const pixels = card.querySelector('canvas').toDataURL('image/png');
+              if (source.id in finalCanvases && finalCanvases[source.id] !== pixels) throw new Error('Navigation final canvas did not freeze.');
+              finalCanvases[source.id] = pixels;
+              if (step > local) frozen++;
+            }
           }
           compared++;
         }
       }
       return {task: example.game, case_id: example.id, shared_steps_checked: max + 1, frame_metadata_checks: compared,
-        frozen_terminal_canvas_checks: frozen, source_lengths: Object.fromEntries(example.systems.map(system => [system.id, system.frames.length])),
+        frozen_terminal_canvas_checks: frozen, frozen_terminal_metadata_checks: frozenMetadata,
+        source_lengths: Object.fromEntries(example.systems.map(system => [system.id, system.frames.length])),
         outcomes: Object.fromEntries(example.systems.map(system => [system.id, system.summary || {}]))};
-    }, {example, exampleIndex});
+    }, {example, exampleIndex, hardMode});
+    if (hardMode && example.game === 'snake') {
+      assert.doesNotMatch(await page.locator('body').innerText(), /\bthree bites\b|\bthree food\b|\b3[- ]food\b|\bfood\s*\/\s*3(?:\s|$)|\bfood target reached\b/i,
+        'The restored continuing-food challenge must not display stale three-food target text.');
+      result.no_stale_three_food_target_text = true;
+    }
     result.controls = await controls('navigation', Math.max(...example.systems.map(system => system.frames.length - 1)));
     const nanojev = example.systems.find(system => system.id === 'nanojev');
     const poster = nanojev.frames.length - 1;
@@ -163,6 +236,14 @@ try {
     await page.setViewportSize({width: 390, height: 844});
     await screenshot(`${example.game}_mobile`, await page.evaluate(() => window.nanojevComparison.getSnapshot()));
     await page.setViewportSize({width: 1600, height: 1200});
+    if (hardMode) {
+      const final = Math.max(...example.systems.map(system => system.frames.length - 1));
+      await page.evaluate(({index, step}) => window.nanojevComparison.setFrame(index, step), {index: exampleIndex, step: final});
+      await screenshot(`${example.game}_final_all_desktop`, await page.evaluate(() => window.nanojevComparison.getSnapshot()));
+      await page.setViewportSize({width: 390, height: 844});
+      await screenshot(`${example.game}_final_all_mobile`, await page.evaluate(() => window.nanojevComparison.getSnapshot()));
+      await page.setViewportSize({width: 1600, height: 1200});
+    }
     report.tasks.push(result);
     console.log(JSON.stringify({task: result.task, checked_steps: result.shared_steps_checked, checked_frames: result.frame_metadata_checks}));
   }
@@ -170,6 +251,17 @@ try {
   for (const [task, filename, relative] of [['basic', 'shooting_results.json', 'index.html'],
     ['predict_position', 'predict_position_results.json', 'predict-position.html']]) {
     const data = await getPageData(filename, relative); await ready('shooting');
+    if (hardMode) {
+      if (task === 'basic') assert.equal(data.cases.length, 3, 'Basic must preserve the existing three selected cases.');
+      if (task === 'predict_position') {
+        assert.deepEqual(data.cases.map(item => item.id).sort(), ['test-sonic_predict_position-9300720', 'test-sonic_predict_position-9300738']);
+        for (const item of data.cases) {
+          assert.equal(item.systems.find(system => system.id === 'nanojev').success, true);
+          assert.equal(item.systems.find(system => system.id === 'jev').success, false);
+          assert.equal(item.systems.find(system => system.id === 'base').success, false);
+        }
+      }
+    }
     const defaultCase = data.cases.find(item => item.id === data.default_case_id);
     assert.ok(defaultCase, `${task}: default case must exist.`);
     assert.equal(defaultCase.systems.find(system => system.id === 'nanojev').success, true);

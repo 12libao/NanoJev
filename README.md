@@ -88,8 +88,8 @@ validated visual expert and preserves the existing Maze, Snake and Basic data.
 
 [Watch Predict Position: one rocket, three policies →](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position.html)
 The development arcade now uses the same step-400 unified model across
-[Maze](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#maze),
-[Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#snake),
+[50×50 Maze](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#maze),
+[256-step Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#snake),
 [Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/) and Predict Position.
 Both shooting pages open on a NanoJev win where Jev and untuned Qwen miss.
 The development replay shows original frames, action probabilities and the
