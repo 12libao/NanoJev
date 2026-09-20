@@ -4,220 +4,120 @@
 
 **一个 0.6B 并行决策模型：输入状态与问题，直接得到完整概率分布，无需生成答案 token。**
 
-[模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
+[在线演示](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev-dev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev)
 
-**[打开在线三栏对照演示 →](https://nanojev.tianyuchen99.chatgpt.site)**
+## 更新内容
 
-## 三个模型，同一场游戏
+**2026 年 9 月 20 日：一个模型，四款游戏。**
 
-[![Jev、NanoJev 与原始 Qwen 并排探索迷宫](assets/side_by_side_maze.png)](https://nanojev.tianyuchen99.chatgpt.site/#maze)
+- **统一 checkpoint：** 同一个模型支持 Maze、Snake、ViZDoom Basic 和 Predict Position。
+- **更大的游戏实录：** 225 次行动完成 50×50 迷宫；完整存活 256 步的 Snake 对局，吃到 30 个食物。
+- **移动目标射击：** Predict Position 测试成功数从 11/128 提升到 **27/128**，Basic 保持 **128/128**。
+- **新版模型与数据：** step-400 checkpoint、覆盖五个分区的 18,760 条混合任务数据，以及可复现的评测记录。
 
-[下载迷宫视频（MP4）](assets/side_by_side_maze.mp4) · 27 秒 · 1440 × 1120 · 30 fps
+## 三个模型，并排回放
 
-[打开贪吃蛇](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [探索 50×50 迷宫](https://nanojev.tianyuchen99.chatgpt.site/#maze) · [真实来源与回放核验](assets/side_by_side_data_manifest.json)
+**[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)、NanoJev 和未微调 Qwen** 的真实网页回放。下方动图自动循环，点击即可进入交互播放器。四款演示使用同一个当前 NanoJev checkpoint。
 
-独立的 ChatGPT Sites 网站以浅色三栏展示 **Jev、NanoJev 和原始 Qwen**。三个画面按同一环境步推进，已经结束的对局停留在真实终局。概率条展示产生当前画面的最后一次决策；各系统均包含共同的代码规划部分。
+### 找到出口 · 50×50 Maze
 
-新版迷宫对照使用真实的原始 Qwen3-0.6B：**4,726 次尝试、2,044 次碰撞后到达目标**。下方旧迷宫视频继续保留原来的**起始 NanoJev** 对照与实测数字。
+[![Jev、当前 NanoJev 与未微调 Qwen 在网页三栏播放器中探索同一张 50×50 迷宫](assets/maze_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze)
 
-## 真实对局实录
+NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 用 **2,738 次**，未微调 Qwen 用 **4,726 次**。三组都通过局部安全概率驱动相同探索代码，并记住已经走通的路径。
 
-看模型判断与代码规划共同完成任务。每个游戏的三组系统都使用相同控制代码，回放保留实际动作、概率和完整终局。
+### 把握开火时机 · Predict Position
 
-### 找到出口：50×50 迷宫
+[![NanoJev 等待后命中移动目标，Jev 和未微调 Qwen 未命中，三组按同一游戏时钟播放](assets/predict_position_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
 
-[![NanoJev、Jev 与起始 NanoJev 探索同一张 50×50 迷宫](assets/arcade_maze.gif)](assets/arcade_maze.mp4)
+一个移动目标，一枚火箭。NanoJev 在 **5.06 秒**发射、**5.94 秒**命中；[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 和未微调 Qwen 在 **1.40 秒**发射后落空。播放器保留两个精选 NanoJev 独胜案例，展示原始画面、动作概率与实际发射时刻。
 
-[观看 MP4](assets/arcade_maze.mp4) · [交互回放](web/arcade.html)
-
-模型判断四个局部方向是否可通行；代码记住碰撞、探索未知边，并沿已经走通过的路径重新定位。
-
-| 系统 | 行动尝试 | 碰撞 | 结果 |
-|---|---:|---:|---|
-| **NanoJev** | **244** | **36** | **到达目标** |
-| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 2,738 | 1,044 | 到达目标 |
-| 起始 NanoJev | 171 | 43 | 到达目标 |
-
-起始 NanoJev 是此前已经训练的 NanoJev checkpoint；新版模型进行了与局部输入对应的安全判断训练。
-
-### 持续成长：12×12 贪吃蛇
-
-[![NanoJev、Jev 与原始 Qwen 使用共同规划器玩贪吃蛇](assets/arcade_snake.gif)](assets/arcade_snake.mp4)
-
-[观看 MP4](assets/arcade_snake.mp4) · [交互回放](web/arcade.html)
-
-共同规划器先排除立即碰撞的动作，再寻找通向当前食物的静态路径。模型在剩余候选之间选择；仅剩一个候选时由代码直接执行。**种子：61005；控制方式：贪心选择。**
-
-| 系统 | 吃到食物 | 步数 | 结果 |
-|---|---:|---:|---|
-| **NanoJev** | **27** | **256** | **达到上限时仍存活** |
-| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 30 | 256 | 达到上限时仍存活 |
-| 原始 Qwen3-0.6B | 25 | 211 | 陷入死局 |
-
-原始 Qwen 使用未经本项目微调的预训练权重和原生语言模型输出头，概率条件限定为所提供的 A–D 候选 token。
-
-[案例、模型身份与轨迹核验记录](assets/arcade_data_manifest.json)
+[打开 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [打开 Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
 
 ## 核心能力
 
-| 能力 | 已实现 |
-|---|---|
-| 多状态并行 | 同一批处理多个独立环境状态 |
-| 多问题并行 | 每个状态同时回答多个问题 |
-| 动态候选 | Choice 每题支持 2–255 个候选，共享决策头 |
-| 多种决策类型 | Choice 候选分布、Boolean 概率、Score 的 2–10 级分布及期望 |
-| 直接输出概率 | 一次前向得到完整候选分布，无输出 token 解码 |
-| 轻量底座 | Qwen3-0.6B，支持单卡训练与部署 |
-| 持久推理服务 | 模型加载一次，复用权重处理后续请求 |
+- **并行决策：** 将独立状态、问题和候选路径放入同一次 backbone 前向计算。
+- **动态候选：** Choice 通过共享评分头，返回所提供的 2–255 个候选的完整分布。
+- **布尔与等级问题：** 输出一个命题成立的概率，或 2–10 个有序等级的分布及期望。
+- **直接输出概率：** 可用于排序、贪心选择或采样，无需生成答案 token。
+- **轻量统一底座：** Qwen3-0.6B 加决策头，支持四款游戏及持久推理服务。
 
-实际运行已验证：**6 个状态 · 18 个问题 · 44 条候选路径 · 1 次 backbone 前向**。[并行调用记录](research/parallel_example_v3.json)
+每个请求包含**状态、问题和候选集合**。模型编码候选路径，再由共享决策头输出概率。Choice 使用集合注意力与 softmax，Boolean 使用 sigmoid，Score 返回等级的概率加权期望。
 
-## 更大的游戏与校准决策
+## 完整测试结果
 
-**新增：专家数据混合 SFT。** 同一个统一模型将 Predict Position 测试成功数从
-**11/128 提升到 27/128**，Snake 从 **6/8 提升到 8/8**，Basic 保持 **128/128**。
-相同条件下，[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
-在这三项任务上分别为 11/128、8/8 和 56/128。Maze 为 NanoJev 4/10、Jev 7/10。
-四组系统均完成相同的 548 个测试及 OOD 案例，所有轨迹均通过独立重放。
+以下为 **274 个测试案例**的成功数。各系统使用相同观察接口、候选动作和固定随机种子的 epsilon-greedy 控制器：
 
-新增数据包含 **6,788 条 Predict Position 训练问题**，来自已验证的视觉专家，
-并保留原有 Maze、Snake 与 Basic 数据。
-[完整测试及 OOD 结果、开发模型](docs/SONIC_PREDICT_POSITION_RESULTS.md)
-· [专家数据采集与混合 SFT 流程](docs/SONIC_PREDICT_POSITION.md)
+| 模型 | Maze | Snake | Basic | Predict Position |
+|---|---:|---:|---:|---:|
+| **NanoJev** | **4/10** | **8/8** | **128/128** | **27/128** |
+| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 7/10 | 8/8 | 56/128 | 11/128 |
+| 未微调 Qwen3-0.6B | 2/10 | 0/8 | 56/128 | 11/128 |
 
-[观看 Predict Position：一枚火箭，三组策略 →](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position.html)
-开发站的 [50×50 Maze](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#maze)、
-[256 步 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#snake)、
-[Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/) 和 Predict Position
-现使用同一个 step-400 统一模型。两款射击演示默认展示 NanoJev 命中、Jev 和未训练 Qwen 未命中的案例。
-开发版回放展示原始游戏帧、动作概率和火箭真正发射的时刻。
-[视频与回放说明](docs/PREDICT_POSITION_DEMO.md)。
+测试与 OOD 合计为**每个模型 548 个案例**，全部评测轨迹均通过独立模拟器重放。上方大规模导航演示使用页面标明的局部问题与代码规划设置。
 
-**统一游戏训练：** 一个共享 checkpoint 通过同一套状态与问题接口支持 Maze、Snake
-以及 ViZDoom Basic / Predict Position。首轮已完成策略 SFT、冻结策略的终局结果学习、
-真实游戏评测，以及下一轮数据采集。
+[完整测试及 OOD 结果](docs/SONIC_PREDICT_POSITION_RESULTS.md) · [训练流程](docs/SONIC_PREDICT_POSITION.md)
 
-在固定测试集上，成对结果学习方案使用**相同 Q 控制器，将任务宏平均成功率从 25.28% 提升至 41.11%**，
-终局概率的测试集 vector Brier 从 **0.881312 降至 0.122410**。
-实验包含直接 Brier 与 CE 对照，每次完整评测运行 228 个案例，并独立重放核验。
-新控制器已生成 **17,969 条终局结果问题**，并完成基于这些数据的 MC/TD 训练对照。
+## 模型与数据
 
-**多步 TD：** 八组实验使用两个训练种子，对比 MC、三步混合、八步混合与纯 TD。
-作为次要对照的八步混合方案达到 **测试 57.22% / OOD 20.28% 的任务宏平均成功率**，
-MC 为 **45.97% / 17.22%**。每个选定模型都运行完整 228 个案例。
-完整报告包含预先指定的三步主对照、分游戏成功数、概率指标与目标网络计算开销。
+当前版本为 **`hard_lr1e5`，step 400**，使用完整问题交叉熵训练同一个共享模型。每次更新按 **1/3、1/3、1/6、1/6** 的权重混合 Maze、Snake、Basic 和 Predict Position。
 
-**Choice** 输出候选动作上的一个分布；**Boolean Q** 输出各动作独立的成功概率，
-它们不需要加起来等于一。后续策略改变时，下一轮采集也会更新对应的概率目标。
-详见[实现与训练命令](docs/UNIFIED_GAMES.md)、[首轮结果](docs/UNIFIED_RESULTS.md)、
-[多步 TD 实现](docs/UNIFIED_TD.md)及[完整 MC/TD 对照结果](docs/UNIFIED_TD_RESULTS.md)。
+hard-target 与 soft-target 两种版本在 train、dev、calibration、test 和 OOD 五个分区各包含 **18,760 条数据**。选定的 hard-target 训练分区为 **10,898 条**，包含 **6,788 条 Predict Position 问题**；通过目标有效性检查、用于训练的问题为 **10,893 条**。原有 Maze、Snake 和 Basic 分区保持一致。数据包还包含匹配的 soft-target 版本、专家轨迹和评测记录。
 
-- **完整环境：** 8×8、16×16、32×32、50×50 迷宫，四类拓扑，每图多个位置，并支持配置更大尺寸。
-- **局部判断与代码规划：** 统一 5×5 局部观察、四方向并行安全判断、移动记忆及模型引导探索。
-- **贪吃蛇规则：** 可复现食物生成、身体增长、碰撞与尾部移动、动态动作候选和安全问题。
-- **概率学习：** 观测事件数据、CE/Brier 训练、成对适当奖励学习、精确梯度检查及已完成的 Qwen3-0.6B 训练。
-- **完整评测：** 按地图划分数据、固定游戏集合、真实模型执行与独立轨迹重放核验。
+开发版模型和数据位于上方链接的 Hugging Face 仓库，可登录获授权账户下载。
 
-局部安全模型的测试题准确率为 **77.84%**，50×50 OOD 题为 **76.56%**。概率学习先导中，成对适当奖励组的分布误差为 **测试 0.11844 / OOD 0.06202**；该误差是模型分布与模拟器事件概率之间的差值平方和。
-
-[原子判断与规划](docs/ATOMIC_PLANNING.md) · [大规模游戏流程](docs/SCALED_GAMES.md) · [RLCD 实现与结果](docs/RLCD_EXPERIMENT.md) · [输入契约](docs/TYPESAFE_CONTRACT.md) · [游戏结果](docs/DEVELOPMENT_RESULTS.md)
-
-## 此前完整 40 图导航评测
-
-**控制方式：T=1 概率采样。** 包含 20 张 4×4 测试地图和 20 张 6×6 OOD 地图。
-
-| 模型 | 4×4 测试地图 | 6×6 OOD 地图 |
-|---|---:|---:|
-| **NanoJev** | **19/20 · 95%** | **18/20 · 90%** |
-| [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) | 20/20 · 100% | 19/20 · 95% |
-| 原始 Qwen3-0.6B | 7/20 · 35% | 3/20 · 15% |
-
-[此前的对照回放](web/comparison.html) · [完整评测结果](research/nanojev_comparison_public.json)
-
-## 实现流程
-
-每个决策由**状态、问题和候选集合**定义。模型编码候选路径，再由共享决策头输出每题的完整分布。Choice 使用共享标量头与集合注意力；Boolean 使用单路径 sigmoid；Score 返回等级分布和概率加权期望。
-
-1. **构建问题：** 生成状态、问题、候选描述和目标分布。
-2. **组织数据：** 相关地图、规则及其变体保留在同一分区。
-3. **训练模型：** 初始化 Qwen3-0.6B，预热决策头，再使用完整问题的分布损失训练。
-4. **执行评测：** 测量概率质量，运行游戏控制器并记录真实动作。
-5. **服务与可视化：** 复用持久模型接口，在浏览器重放完整轨迹。
-
-[完整训练与运行手册（English）](research/pipeline_runbook.md)
-
-## 快速体验三栏对照
-
-交互回放只需 Python：
+## 快速开始
 
 ```bash
-git clone https://github.com/TianyuCodings/NanoJev.git
-cd NanoJev
-python3 -m http.server 8080 --bind 127.0.0.1 --directory web
+git clone --branch feature/unified-game-policy-iteration https://github.com/TianyuCodings/NanoJev-dev.git
+cd NanoJev-dev
+python -m pip install -r requirements-toy.txt huggingface_hub
+hf auth login
 ```
 
-打开 **http://127.0.0.1:8080/side-by-side.html**，并排播放贪吃蛇与迷宫的三方实录。深色游戏厅保留在 **http://127.0.0.1:8080/arcade.html**，此前的导航对照页面位于 **http://127.0.0.1:8080/comparison.html**。
-
-## 下载演示使用的模型
-
-| 用途 | [模型仓库](https://huggingface.co/C-Tianyu/NanoJev/tree/main/variants)中的检查点 |
-|---|---|
-| **50×50 迷宫演示** | `variants/local_atomic_seed17` |
-| **Snake 演示** | `variants/games_gold_seed17` |
-| 整图问题对照 | `variants/games_api_seed17` |
-| 校准决策实验 | `variants/events_ce_seed17`、`variants/events_brier_seed17`、`variants/events_paired_seed17` |
-
-```python
-from pathlib import Path
-from huggingface_hub import snapshot_download
-
-variant = "local_atomic_seed17"  # Snake 使用 "games_gold_seed17"。
-snapshot = snapshot_download(
-    repo_id="C-Tianyu/NanoJev",
-    allow_patterns=[f"variants/{variant}/*"],
-)
-checkpoint_dir = Path(snapshot) / "variants" / variant
-```
-
-[游戏数据包](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data/tree/main/games_v4)包含匹配的训练分区、固定评测输入和全部六组 Snake 控制器实录。[下载、校验与复现命令](docs/GAME_RELEASE.md)。
-
-## 下载并运行模型
-
-模型和数据集均可公开下载。在兼容 CUDA 的环境中安装 [Python 依赖](requirements-toy.txt)：
-
-```bash
-python -m pip install -r requirements-toy.txt
-```
-
-下载基础 checkpoint 和数据集。根目录权重对应此前的导航版本，也是后续训练的初始化模型：
+下载当前 checkpoint 与数据：
 
 ```python
 from huggingface_hub import snapshot_download
 
 snapshot_download(
-    repo_id="C-Tianyu/NanoJev", local_dir="checkpoints/NanoJev",
+    repo_id="C-Tianyu/NanoJev-dev",
+    local_dir="checkpoints/NanoJev-unified",
     allow_patterns=["best.safetensors", "config.json", "tokenizer/*", "backbone_config/*"],
 )
 snapshot_download(
-    repo_id="C-Tianyu/NanoJev-Data", repo_type="dataset", local_dir="data/NanoJev",
+    repo_id="C-Tianyu/NanoJev-Data-dev",
+    repo_type="dataset",
+    local_dir="data/NanoJev-unified",
 )
 ```
 
-启动持久服务：
+在 CUDA 环境启动推理服务：
 
 ```bash
 python scripts/serve_decisions.py \
-  --checkpoint-dir checkpoints/NanoJev \
-  --web-root web --port 8765
+  --checkpoint-dir checkpoints/NanoJev-unified \
+  --web-root web --port 8765 --disable-native-triton
 ```
 
-打开 **http://127.0.0.1:8765**，或向 **`POST /api/evaluate`** 发送批量请求。模型只加载一次，后续请求复用权重。
+模型只加载一次。向 **`POST http://127.0.0.1:8765/api/evaluate`** 发送状态与问题批次即可调用。
 
-[完整手册](research/pipeline_runbook.md)包含数据生成、训练、评测、checkpoint 创建，以及从下载模型和数据继续运行的命令。
+本地体验真实游戏回放：
+
+```bash
+python3 -m http.server 8080 --bind 127.0.0.1 --directory web
+```
+
+打开 **http://127.0.0.1:8080/dev/side-by-side.html?autoplay=1#maze** 或 **http://127.0.0.1:8080/dev/predict-position.html?autoplay=1**。
+
+## 开发文档
+
+[输入契约](docs/TYPESAFE_CONTRACT.md) · [统一环境](docs/UNIFIED_GAMES.md) · [原子判断与规划](docs/ATOMIC_PLANNING.md) · [Predict Position 回放](docs/PREDICT_POSITION_DEMO.md) · [射击回放](docs/SHOOTING_DEMO.md)
 
 ## 路线图
 
-- [x] **扩展数据：** 大迷宫、贪吃蛇、原子问题与观测事件数据集。
-- [x] **校准奖励原型：** 实现并验证成对适当奖励学习，提供 CE/Brier 对照。
-- [ ] **扩展 RLCD：** 更多语义任务、随机长程事件与模型种子。
-- [ ] **结构化输入：** 为结构化 instructions、criteria 和原生 Noul 接口建立新版编码器。
+- [x] 一个统一 checkpoint 支持 Maze、Snake 和两款射击任务。
+- [x] 50×50 迷宫、长局 Snake 与三模型同步网页回放。
+- [x] 混合任务 SFT、可复现的数据划分与独立重放评测。
+- [ ] 面向更多长程任务的 RLCD 后训练。
+- [ ] 共享前缀推理与更大的候选批次。
+- [ ] 更多射击场景与结构化输入支持。

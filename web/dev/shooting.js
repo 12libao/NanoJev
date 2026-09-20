@@ -303,6 +303,7 @@
       $('cohortNote').hidden = !(matchingActions && differingProbabilities);
       $('viewer').hidden = false;
       await setCase(data.default_case_id);
+      if (new URLSearchParams(location.search).get('autoplay') === '1') play();
     } catch (error) { showError(error); }
   }
   boot();

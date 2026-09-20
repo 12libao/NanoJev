@@ -319,6 +319,7 @@
       state.example = state.data.examples.findIndex((example) => example.game === game);
       $('loadState').hidden = true; $('viewer').hidden = false;
       renderScene(); api.ready = true; renderFrame();
+      if (new URLSearchParams(location.search).get('autoplay') === '1') play();
     } catch (error) {
       pause(); api.ready = false; api.error = error.message;
       $('viewer').hidden = true; $('loadState').hidden = false; $('loadState').classList.add('error');
