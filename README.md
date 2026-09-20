@@ -4,20 +4,30 @@
 
 **A 0.6B parallel decision model: states and questions in, complete probability distributions out. Zero output-token decoding.**
 
-[Live demos](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [Model](https://huggingface.co/C-Tianyu/NanoJev-dev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev)
+[Play ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze & Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [Model](https://huggingface.co/C-Tianyu/NanoJev-dev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev)
+
+**Now playing ViZDoom:** one shared checkpoint handles Basic aiming and Predict Position's moving-target rocket shots, alongside Maze and Snake.
+
+**4 tasks · 18,760 decision questions per data variant · 896 Predict Position expert episodes**
 
 ## What's new
 
 **September 20, 2026 — One model, four games.**
 
-- **One unified checkpoint** now powers Maze, Snake, ViZDoom Basic and Predict Position.
-- **Bigger game replays:** a 50×50 maze completed in 225 attempts, and a full 256-step Snake run collecting 30 food items.
-- **Moving-target shooting:** Predict Position test successes improve from 11/128 to **27/128**, while Basic retains **128/128**.
-- **Updated model and data:** the selected step-400 checkpoint, 18,760 mixed-task data rows across five splits, and reproducible evaluation records.
+- **ViZDoom Basic:** **128/128** test successes, compared with **56/128** for [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev).
+- **ViZDoom Predict Position:** **27/128** test successes, up from **11/128** before this round; the matched [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) run also scores **11/128**. The policy learns when to turn, wait and fire at a moving target.
+- **16,333 ViZDoom questions** within an **18,760-question** mixed-task dataset per target variant, spanning train, dev, calibration, test and OOD.
+- **One model, four games:** the same step-400 checkpoint also completes the 50×50 maze in **225 attempts** and collects **30 food items** during a full 256-step Snake run.
 
 ## Three models, side by side
 
 Real browser replays of **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev), NanoJev and Untuned Qwen**. These animations loop automatically; click either one to open its interactive player. All four demos use the same current NanoJev checkpoint.
+
+### ViZDoom Predict Position · Choose the moment
+
+[![NanoJev waits and hits a moving target while Jev and Untuned Qwen miss, shown on the same game clock](assets/predict_position_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
+
+One moving target, one rocket. NanoJev fires at **5.06 s** and hits at **5.94 s**; [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) and Untuned Qwen fire at **1.40 s** and miss. The player includes two selected NanoJev wins, with original frames, action probabilities and actual shot times.
 
 ### Find the exit · 50×50 Maze
 
@@ -25,13 +35,7 @@ Real browser replays of **[Jev](https://typesafe.ai/blog/introducing-system-one-
 
 NanoJev reaches the exit in **225 attempts**, versus **2,738** for [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) and **4,726** for Untuned Qwen. Each system combines local safety probabilities with the same exploration code and remembered open paths.
 
-### Choose the moment · Predict Position
-
-[![NanoJev waits and hits a moving target while Jev and Untuned Qwen miss, shown on the same game clock](assets/predict_position_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
-
-One moving target, one rocket. NanoJev fires at **5.06 s** and hits at **5.94 s**; [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) and Untuned Qwen fire at **1.40 s** and miss. The player includes two selected NanoJev wins, with original frames, action probabilities and actual shot times.
-
-[Play Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [Play Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
+[Play Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [Play ViZDoom Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
 
 ## What NanoJev does
 
@@ -57,11 +61,23 @@ Test and OOD together contain **548 cases per model**. Every evaluated trajector
 
 [Complete test and OOD results](docs/SONIC_PREDICT_POSITION_RESULTS.md) · [Training pipeline](docs/SONIC_PREDICT_POSITION.md)
 
-## Model and data
+## Dataset scale and model
+
+**18,760 decision questions per target variant, including 16,333 ViZDoom questions.** The matched hard-target and soft-target variants cover the same questions across train, dev, calibration, test and OOD.
+
+| Task | All five splits | Training split |
+|---|---:|---:|
+| **ViZDoom Predict Position** | **11,173** | **6,788** |
+| **ViZDoom Basic** | **5,160** | **3,054** |
+| Maze | 1,469 | 653 |
+| Snake | 958 | 403 |
+| **Total per variant** | **18,760** | **10,898** |
+
+**Expert gameplay:** the package includes **896 Predict Position episodes with 17,498 recorded decisions**, including 512 episodes assigned to training. It also contains the original mixed-task inputs, hard/soft targets, evaluation trajectories and replay checks.
+
+Of the 10,898 stored training questions, **10,893** pass the target-validity filter. Existing Maze, Snake and Basic splits are preserved.
 
 The current release is **`hard_lr1e5`, step 400**: one shared model trained with complete-question cross entropy. Updates mix Maze, Snake, Basic and Predict Position with weights **1/3, 1/3, 1/6, 1/6**.
-
-The hard-target and soft-target variants each contain **18,760 rows across train, dev, calibration, test and OOD**. The selected hard-target training split has **10,898 rows**, including **6,788 Predict Position questions**; **10,893** training questions pass the target-validity filter. Existing Maze, Snake and Basic splits are preserved. The package also includes the matched soft-target variant, expert trajectories and evaluation records.
 
 **Hugging Face upload in progress:** the current model and complete dataset are being uploaded to the development repositories linked above as `unified-games-v1`. The download commands below are ready for that release.
 

@@ -4,20 +4,30 @@
 
 **一个 0.6B 并行决策模型：输入状态与问题，直接得到完整概率分布，无需生成答案 token。**
 
-[在线演示](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev-dev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev)
+[体验 ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze 与 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev-dev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev)
+
+**现在支持 ViZDoom：** 同一个 checkpoint 完成 Basic 的瞄准射击、Predict Position 的移动目标火箭射击，同时支持 Maze 和 Snake。
+
+**4 项任务 · 每种数据版本 18,760 条决策问题 · 896 局 Predict Position 专家轨迹**
 
 ## 更新内容
 
 **2026 年 9 月 20 日：一个模型，四款游戏。**
 
-- **统一 checkpoint：** 同一个模型支持 Maze、Snake、ViZDoom Basic 和 Predict Position。
-- **更大的游戏实录：** 225 次行动完成 50×50 迷宫；完整存活 256 步的 Snake 对局，吃到 30 个食物。
-- **移动目标射击：** Predict Position 测试成功数从 11/128 提升到 **27/128**，Basic 保持 **128/128**。
-- **新版模型与数据：** step-400 checkpoint、覆盖五个分区的 18,760 条混合任务数据，以及可复现的评测记录。
+- **ViZDoom Basic：** 测试成功 **128/128**，对比 [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 的 **56/128**。
+- **ViZDoom Predict Position：** 测试成功数从本轮训练前的 **11/128** 提升至 **27/128**；同条件 [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 为 **11/128**。策略学习何时转向、等待并向移动目标发射火箭。
+- **16,333 条 ViZDoom 问题：** 每种目标版本共 **18,760 条**混合任务问题，覆盖 train、dev、calibration、test 和 OOD 五个分区。
+- **一个模型，四款游戏：** 同一个 step-400 checkpoint 用 **225 次行动**完成 50×50 迷宫，并在完整存活 256 步的 Snake 对局中吃到 **30 个食物**。
 
 ## 三个模型，并排回放
 
 **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)、NanoJev 和未微调 Qwen** 的真实网页回放。下方动图自动循环，点击即可进入交互播放器。四款演示使用同一个当前 NanoJev checkpoint。
+
+### ViZDoom Predict Position · 把握开火时机
+
+[![NanoJev 等待后命中移动目标，Jev 和未微调 Qwen 未命中，三组按同一游戏时钟播放](assets/predict_position_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
+
+一个移动目标，一枚火箭。NanoJev 在 **5.06 秒**发射、**5.94 秒**命中；[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 和未微调 Qwen 在 **1.40 秒**发射后落空。播放器保留两个精选 NanoJev 独胜案例，展示原始画面、动作概率与实际发射时刻。
 
 ### 找到出口 · 50×50 Maze
 
@@ -25,13 +35,7 @@
 
 NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 用 **2,738 次**，未微调 Qwen 用 **4,726 次**。三组都通过局部安全概率驱动相同探索代码，并记住已经走通的路径。
 
-### 把握开火时机 · Predict Position
-
-[![NanoJev 等待后命中移动目标，Jev 和未微调 Qwen 未命中，三组按同一游戏时钟播放](assets/predict_position_unified_autoplay.gif)](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1)
-
-一个移动目标，一枚火箭。NanoJev 在 **5.06 秒**发射、**5.94 秒**命中；[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 和未微调 Qwen 在 **1.40 秒**发射后落空。播放器保留两个精选 NanoJev 独胜案例，展示原始画面、动作概率与实际发射时刻。
-
-[打开 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [打开 Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
+[打开 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#snake) · [打开 ViZDoom Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1)
 
 ## 核心能力
 
@@ -57,11 +61,23 @@ NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/intro
 
 [完整测试及 OOD 结果](docs/SONIC_PREDICT_POSITION_RESULTS.md) · [训练流程](docs/SONIC_PREDICT_POSITION.md)
 
-## 模型与数据
+## 数据规模与模型
+
+**每种目标版本包含 18,760 条决策问题，其中 16,333 条来自 ViZDoom。** hard-target 与 soft-target 两种版本覆盖相同问题，均划分为 train、dev、calibration、test 和 OOD 五个分区。
+
+| 任务 | 五个分区合计 | 训练分区 |
+|---|---:|---:|
+| **ViZDoom Predict Position** | **11,173** | **6,788** |
+| **ViZDoom Basic** | **5,160** | **3,054** |
+| Maze | 1,469 | 653 |
+| Snake | 958 | 403 |
+| **每种版本合计** | **18,760** | **10,898** |
+
+**专家游戏轨迹：** 数据包包含 **896 局 Predict Position、17,498 个决策步骤**，其中 512 局分配给训练。还包括原始混合任务输入、hard/soft 目标、评测轨迹和重放检查记录。
+
+训练分区保存的 10,898 条问题中，**10,893 条**通过目标有效性检查。原有 Maze、Snake 和 Basic 分区保持一致。
 
 当前版本为 **`hard_lr1e5`，step 400**，使用完整问题交叉熵训练同一个共享模型。每次更新按 **1/3、1/3、1/6、1/6** 的权重混合 Maze、Snake、Basic 和 Predict Position。
-
-hard-target 与 soft-target 两种版本在 train、dev、calibration、test 和 OOD 五个分区各包含 **18,760 条数据**。选定的 hard-target 训练分区为 **10,898 条**，包含 **6,788 条 Predict Position 问题**；通过目标有效性检查、用于训练的问题为 **10,893 条**。原有 Maze、Snake 和 Basic 分区保持一致。数据包还包含匹配的 soft-target 版本、专家轨迹和评测记录。
 
 **Hugging Face 上传中：** 当前模型与完整数据正在上传至上方开发仓库，版本为 `unified-games-v1`。下方下载命令将在该版本上传完成后可用。
 
