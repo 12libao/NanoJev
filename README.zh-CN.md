@@ -85,6 +85,10 @@
 [完整测试及 OOD 结果、开发模型](docs/SONIC_PREDICT_POSITION_RESULTS.md)
 · [专家数据采集与混合 SFT 流程](docs/SONIC_PREDICT_POSITION.md)
 
+[观看 Predict Position：一枚火箭，三组策略 →](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position.html)
+开发版回放展示原始游戏帧、动作概率和火箭真正发射的时刻。
+[视频与回放说明](docs/PREDICT_POSITION_DEMO.md)。
+
 **统一游戏训练：** 一个共享 checkpoint 通过同一套状态与问题接口支持 Maze、Snake
 以及 ViZDoom Basic / Predict Position。首轮已完成策略 SFT、冻结策略的终局结果学习、
 真实游戏评测，以及下一轮数据采集。

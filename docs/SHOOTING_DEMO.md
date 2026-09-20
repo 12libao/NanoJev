@@ -2,6 +2,10 @@
 
 [Open the independent development arcade](https://nanojev-dev.tianyuchen99.chatgpt.site/).
 
+**Moving targets:** the new [Predict Position replay](PREDICT_POSITION_DEMO.md)
+adds a single-rocket scenario, actual shot-time markers and the selected mixed
+SFT model alongside Jev and Untuned Qwen.
+
 The light viewer places **Jev, NanoJev, and Untuned Qwen** beside each other using real ViZDoom Basic frames. Play, pause, seek, change speed, step one tick, or select any of the twelve recorded cases. Each model stops at its actual terminal tick while the other recordings continue. Maze and Snake are available in the same independent hosting project.
 
 ![Three recorded shooting policies at physical tick 33](../assets/shooting_development.png)

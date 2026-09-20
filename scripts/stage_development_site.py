@@ -50,6 +50,25 @@ def main():
     if not media or any(not p.is_file() for p, _ in files):
         raise ValueError('The development viewer and real frame atlases must be complete')
     files.extend((p, p.relative_to(source / 'dev')) for p in media)
+    prediction = source / 'dev/predict_position_results.json'
+    if prediction.exists():
+        pp = json.loads(prediction.read_text())
+        if pp.get('schema') != 'nanojev-shooting-demo-v1' or not pp.get('cases'):
+            raise ValueError('Predict Position must contain complete recorded cases')
+        for case in pp['cases']:
+            if {s['id'] for s in case['systems']} != {'jev', 'nanojev', 'base'}:
+                raise ValueError('Predict Position requires all three recorded models')
+        prediction_files = ('predict-position.html', 'predict-position.css',
+                            'predict-position.js', 'predict_position_results.json')
+        for name in prediction_files:
+            original = source / 'dev' / name
+            if not original.is_file():
+                raise ValueError('Missing Predict Position viewer asset: ' + name)
+            files.append((original, Path(name)))
+        prediction_media = sorted((source / 'dev/media').glob('predict_position_*.webp'))
+        if not prediction_media:
+            raise ValueError('Missing real Predict Position frame atlases')
+        files.extend((p, p.relative_to(source / 'dev')) for p in prediction_media)
     # These are independent copies; the original public hosting checkout is never opened.
     files.extend((source / name, Path(name)) for name in (
         'side-by-side.html', 'side-by-side.css', 'side-by-side.js', 'side_by_side_results.json'))
@@ -81,6 +100,11 @@ def main():
                                 '<a class="recorded" href="./">← Shooting</a>')
             target.write_text(text)
             transforms = ['development_canonical_and_return_navigation']
+        elif relative.as_posix() in ('index.html', 'predict-position.html'):
+            # A source page lives in web/dev; its independent hosting copy is at root.
+            text = target.read_text().replace('../side-by-side.html', 'side-by-side.html')
+            target.write_text(text)
+            transforms = ['development_root_navigation']
         records.append({'source': str(original.relative_to(source)), 'asset': relative.as_posix(),
                         'bytes': target.stat().st_size,
                         'transforms': transforms,

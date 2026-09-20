@@ -179,13 +179,13 @@ class CaptureGame:
         return reward
 
 
-def render_episode(episode, model_id, atlas, env_factory=UnifiedDoomEnv):
+def render_episode(episode, model_id, atlas, env_factory=UnifiedDoomEnv, capture_factory=CaptureGame):
     case, env = episode["case"], None
     try:
         require(episode["complete"] is True and episode["steps"], "Need a complete, nonempty Basic episode")
         env = env_factory(copy.deepcopy(case["spec"]))
         obs, info = env.reset(case["seed"])
-        capture = CaptureGame(env._game, env._vzd.GameVariable, float(env._initial["KILLCOUNT"]), atlas)
+        capture = capture_factory(env._game, env._vzd.GameVariable, float(env._initial["KILLCOUNT"]), atlas)
         env._game = capture
         capture.capture()
         max_ticks = min(env.max_ticks, env.max_steps * env.frame_skip)

@@ -6,7 +6,7 @@
   const ACTIONS = ['left', 'right', 'shoot', 'noop'];
   const LABELS = { left: 'Left', right: 'Right', shoot: 'Shoot', noop: 'Wait' };
   const images = new Map();
-  const state = { data: null, caseIndex: 0, tick: 0, speed: 1, playing: false, loading: false,
+  const state = { data: null, caseIndex: 0, tick: 0, speed: Number($('speed').value), playing: false, loading: false,
     animation: null, previousTime: 0, fraction: 0, loadVersion: 0, panels: [] };
   const api = { ready: false, error: null, getSnapshot, setTick, setCase, play, pause };
   window.nanojevShooting = api;
@@ -186,6 +186,7 @@
       return { system, card, canvas, context, bars };
     });
     $('modelCards').replaceChildren(...state.panels.map((panel) => panel.card));
+    document.dispatchEvent(new CustomEvent('nanojev:case', { detail: item }));
   }
 
   function renderTick() {
@@ -234,6 +235,7 @@
     $('timeline').setAttribute('aria-valuetext', `Physical tick ${state.tick} of ${finalTick()}`);
     $('currentTick').textContent = String(state.tick);
     $('shootingStage').dataset.tick = String(state.tick);
+    document.dispatchEvent(new CustomEvent('nanojev:tick', { detail: getSnapshot() }));
   }
 
   function getSnapshot() {
@@ -273,12 +275,16 @@
   async function boot() {
     setControlsDisabled(true);
     try {
-      const response = await fetch('shooting_results.json', { cache: 'no-cache' });
+      const recording = $('shootingStage').dataset.recording || 'shooting_results.json';
+      const response = await fetch(assetUrl(recording), { cache: 'no-cache' });
       if (!response.ok) throw new Error(`Recorded data could not be read (HTTP ${response.status}).`);
       const data = await response.json(); validateData(data); state.data = data;
+      document.dispatchEvent(new CustomEvent('nanojev:recordings', { detail: data }));
       for (const [index, item] of data.cases.entries()) {
         const option = document.createElement('option'); option.value = item.id;
-        option.textContent = `${String(index + 1).padStart(2, '0')} · ${String(item.split).toUpperCase()} · Seed ${item.seed}`;
+        option.textContent = data.task === 'predict_position' ?
+          `${String(index + 1).padStart(2, '0')} · ${item.title} · ${item.seed}` :
+          `${String(index + 1).padStart(2, '0')} · ${String(item.split).toUpperCase()} · Seed ${item.seed}`;
         $('caseSelect').append(option);
       }
       $('recordingDetail').textContent = `${data.cases.length} recorded cases · 3 model perspectives`;

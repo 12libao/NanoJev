@@ -86,6 +86,10 @@ validated visual expert and preserves the existing Maze, Snake and Basic data.
 [Full test/OOD results and development checkpoint](docs/SONIC_PREDICT_POSITION_RESULTS.md)
 · [Expert collection and mixed SFT pipeline](docs/SONIC_PREDICT_POSITION.md)
 
+[Watch Predict Position: one rocket, three policies →](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position.html)
+The development replay shows original frames, action probabilities and the
+exact rocket launch moments. [Video and replay details](docs/PREDICT_POSITION_DEMO.md).
+
 **Unified game training:** one shared checkpoint learns Maze, Snake, and
 ViZDoom Basic / Predict Position through the same state-and-question interface.
 The first complete cycle includes policy SFT, frozen-policy outcome learning,
