@@ -10,7 +10,7 @@ mixed datasets and the recorded evaluation inputs.
 | Model, initialization and inference source | [C-Tianyu/NanoJev-dev](https://huggingface.co/C-Tianyu/NanoJev-dev) | `unified-games-v1` |
 | Mixed data, evaluation and demonstration sources | [C-Tianyu/NanoJev-Data-dev](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev) | `unified-games-v1` |
 
-**Upload status: in progress.** The prepared model and dataset are being transferred; remote verification and release tagging follow the upload.
+**Upload status:** the dataset is uploaded, verified and tagged `unified-games-v1` at revision `a8434f15e2ecc140cd2b61b85cc7bd0111f70551`. All 214 package files pass remote identity checks. The model upload is still in progress; its verification and release tag follow completion.
 
 Both repositories are private development releases. Sign in with an account
 that has repository access. Existing public releases keep their original

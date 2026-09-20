@@ -88,7 +88,7 @@ NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/intro
 
 共享模型使用完整问题交叉熵训练。每次更新按 **1/3、1/3、1/6、1/6** 的权重混合 Maze、Snake、Basic 和 Predict Position。
 
-**Hugging Face 上传中：** 当前模型与完整数据正在上传至上方开发仓库，版本为 `unified-games-v1`。下方下载命令将在该版本上传完成后可用。
+**Hugging Face 发布状态：** 完整数据集已上传并通过校验，版本为 `unified-games-v1`；模型仍在上传。下方模型下载命令将在模型上传完成后可用。
 
 新版 Hugging Face 快照当前为私有，下载需要仓库访问权限。
 

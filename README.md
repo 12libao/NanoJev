@@ -88,7 +88,7 @@ Of the 10,898 stored training questions, **10,893** pass the target-validity fil
 
 The shared model is trained with complete-question cross entropy. Updates mix Maze, Snake, Basic and Predict Position with weights **1/3, 1/3, 1/6, 1/6**.
 
-**Hugging Face upload in progress:** the current model and complete dataset are being uploaded to the development repositories linked above as `unified-games-v1`. The download commands below are ready for that release.
+**Hugging Face release:** the complete dataset is uploaded and verified as `unified-games-v1`; the model upload is still in progress. The model download command below becomes available when its upload completes.
 
 The new Hugging Face snapshots are private and require repository access.
 
