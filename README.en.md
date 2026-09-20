@@ -77,7 +77,16 @@ Test and OOD together contain **548 cases per model**. Every evaluated trajector
 
 Of the 10,898 stored training questions, **10,893** pass the target-validity filter. Existing Maze, Snake and Basic splits are preserved.
 
-The current release is **`hard_lr1e5`, step 400**: one shared model trained with complete-question cross entropy. Updates mix Maze, Snake, Basic and Predict Position with weights **1/3, 1/3, 1/6, 1/6**.
+### Release version and training run
+
+**`unified-games-v1` packages the step-400 checkpoint from the `hard_lr1e5` training run.** Both names refer to the same selected model used across the four demos.
+
+| Name | Meaning | When to use it |
+|---|---|---|
+| **`unified-games-v1`** | Hugging Face release tag identifying the matching model and dataset snapshots. | Download with `revision="unified-games-v1"`. |
+| **`hard_lr1e5`** | Training experiment: hard (one-hot) action targets for Predict Position, backbone learning rate `1e-5`, decision-head learning rate `1e-4`. | Inspect training configs, logs and experiment comparisons. |
+
+The shared model is trained with complete-question cross entropy. Updates mix Maze, Snake, Basic and Predict Position with weights **1/3, 1/3, 1/6, 1/6**.
 
 **Hugging Face upload in progress:** the current model and complete dataset are being uploaded to the development repositories linked above as `unified-games-v1`. The download commands below are ready for that release.
 

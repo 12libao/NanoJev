@@ -77,7 +77,16 @@ NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/intro
 
 训练分区保存的 10,898 条问题中，**10,893 条**通过目标有效性检查。原有 Maze、Snake 和 Basic 分区保持一致。
 
-当前版本为 **`hard_lr1e5`，step 400**，使用完整问题交叉熵训练同一个共享模型。每次更新按 **1/3、1/3、1/6、1/6** 的权重混合 Maze、Snake、Basic 和 Predict Position。
+### 发布版本与训练实验
+
+**`unified-games-v1` 打包的是 `hard_lr1e5` 训练实验的第 400 步 checkpoint。** 两个名称对应同一份选定模型，四款演示均使用该模型。
+
+| 名称 | 含义 | 使用场景 |
+|---|---|---|
+| **`unified-games-v1`** | Hugging Face 发布标签，固定对应的模型与数据快照。 | 下载时填写 `revision="unified-games-v1"`。 |
+| **`hard_lr1e5`** | 训练实验名：Predict Position 使用 one-hot 硬动作目标，backbone 学习率为 `1e-5`，决策头学习率为 `1e-4`。 | 查看训练配置、日志与实验对比。 |
+
+共享模型使用完整问题交叉熵训练。每次更新按 **1/3、1/3、1/6、1/6** 的权重混合 Maze、Snake、Basic 和 Predict Position。
 
 **Hugging Face 上传中：** 当前模型与完整数据正在上传至上方开发仓库，版本为 `unified-games-v1`。下方下载命令将在该版本上传完成后可用。
 
