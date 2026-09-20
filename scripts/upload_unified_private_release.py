@@ -134,10 +134,9 @@ def upload_one(api, token, kind, folder, receipts):
     if existing_tag is None:
         api.create_tag(rid, repo_type=kind, tag=TAG, revision=commit.oid,
                        tag_message='Verified private unified game development release')
-    else:
-        assert existing_tag.target_commit == commit.oid, 'An existing immutable release tag cannot be moved'
+    # Resolve annotated tags to commits; target_commit can identify the tag object.
     tagged = api.repo_info(rid, repo_type=kind, revision=TAG)
-    assert tagged.sha == commit.oid and tagged.private is True
+    assert tagged.sha == commit.oid and tagged.private is True, 'Release tag must resolve to the verified private commit'
     result = {'repository': rid, 'repo_type': kind, 'url': 'https://huggingface.co/' + ('datasets/' if kind == 'dataset' else '') + rid,
         'revision': commit.oid, 'tag': TAG, 'private': True, 'previous_revision': before.sha,
         'files': verified, 'uploaded_files': len(rows), 'uploaded_bytes': sum(r['bytes'] for r in rows),

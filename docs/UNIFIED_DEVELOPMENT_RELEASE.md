@@ -10,7 +10,12 @@ mixed datasets and the recorded evaluation inputs.
 | Model, initialization and inference source | [C-Tianyu/NanoJev-dev](https://huggingface.co/C-Tianyu/NanoJev-dev) | `unified-games-v1` |
 | Mixed data, evaluation and demonstration sources | [C-Tianyu/NanoJev-Data-dev](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev) | `unified-games-v1` |
 
-**Upload status:** the dataset is uploaded, verified and tagged `unified-games-v1` at revision `a8434f15e2ecc140cd2b61b85cc7bd0111f70551`. All 214 package files pass remote identity checks. The model upload is still in progress; its verification and release tag follow completion.
+**Upload complete and verified.** Both repositories carry the fixed `unified-games-v1` tag. The model contains 149 release files (4,826,215,272 bytes), including the selected checkpoint and initialization; the dataset contains 214 release files (880,105,996 bytes).
+
+- Model revision: `063c47c28f9ad2a4f20388d1692346b5970e9bc3`.
+- Dataset revision: `a8434f15e2ecc140cd2b61b85cc7bd0111f70551`.
+
+All uploaded files pass remote LFS SHA256 or Git blob checks, and 13 representative files pass authenticated download checks.
 
 Both repositories are private development releases. Sign in with an account
 that has repository access. Existing public releases keep their original
@@ -90,6 +95,6 @@ and checks that both release tags resolve to their recorded private revisions.
 
 The complete machine-readable result, exact remote revisions, file counts and
 public-repository guards are stored in
-`results/huggingface_unified_dev_release.json` after upload verification completes.
+[`results/huggingface_unified_dev_release.json`](../results/huggingface_unified_dev_release.json).
 Weights are verified against their remote LFS SHA256 without a second full
 multi-gigabyte download.
