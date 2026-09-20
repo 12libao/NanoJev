@@ -86,6 +86,10 @@
 · [专家数据采集与混合 SFT 流程](docs/SONIC_PREDICT_POSITION.md)
 
 [观看 Predict Position：一枚火箭，三组策略 →](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position.html)
+开发站的 [Maze](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#maze)、
+[Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#snake)、
+[Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/) 和 Predict Position
+现使用同一个 step-400 统一模型。两款射击演示默认展示 NanoJev 命中、Jev 和未训练 Qwen 未命中的案例。
 开发版回放展示原始游戏帧、动作概率和火箭真正发射的时刻。
 [视频与回放说明](docs/PREDICT_POSITION_DEMO.md)。
 

@@ -1,67 +1,43 @@
 # Development shooting replay
 
-[Open the independent development arcade](https://nanojev-dev.tianyuchen99.chatgpt.site/).
+[Open Basic](https://nanojev-dev.tianyuchen99.chatgpt.site/) · [Predict Position](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position) · [Maze](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#maze) · [Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side#snake)
 
-**Moving targets:** the new [Predict Position replay](PREDICT_POSITION_DEMO.md)
-adds a single-rocket scenario, actual shot-time markers and the selected mixed
-SFT model alongside Jev and Untuned Qwen.
+All four development demos use the same unified NanoJev checkpoint: `hard_lr1e5`, step **400**, SHA256 `f68c47d66998231b86b7e91b4ed5e82ae23acf104c8b7cd6d165c3ac7b7ffe1b`.
 
-The light viewer places **Jev, NanoJev, and Untuned Qwen** beside each other using real ViZDoom Basic frames. Play, pause, seek, change speed, step one tick, or select any of the twelve recorded cases. Each model stops at its actual terminal tick while the other recordings continue. Maze and Snake are available in the same independent hosting project.
+The light Basic viewer compares **Jev, NanoJev and Untuned Qwen** with original ViZDoom frames and recorded action probabilities. Play, pause, seek, change speed or advance one physical tick. Each model freezes at its actual terminal transition while the shared clock continues.
 
-![Three recorded shooting policies at physical tick 33](../assets/shooting_development.png)
+## Featured wins
 
-## Recordings
+The player opens on **Cross the sightline**, seed **9030060**: NanoJev moves into position and eliminates the target in **49 ticks**. Jev and Untuned Qwen reach the **286-tick deadline** without a hit. The **Play the NanoJev win** button returns to this case and starts synchronized playback.
 
-| Policy | Test | Eight-tick OOD |
+Two additional selected wins show a target on the left (seed **9030126**, **37 ticks**) and a smaller correction to the right (seed **9030033**, **49 ticks**). Both comparison models fail in all three selected illustrations.
+
+## Full evaluation
+
+The score strip uses the entire frozen cohort, separately from the selected illustrations:
+
+| Policy | Test, four ticks/action | OOD, eight ticks/action |
 | --- | ---: | ---: |
-| NanoJev | 6/6 | 6/6 |
-| Jev | 3/6 | 3/6 |
-| Untuned Qwen | 3/6 | 3/6 |
+| NanoJev | 128/128 | 128/128 |
+| Jev | 56/128 | 59/128 |
+| Untuned Qwen | 56/128 | 59/128 |
 
-All systems use the same case definitions, visible-state text, available actions, greedy controller with epsilon `0.1`, and sampling seed `17`. The twelve cases come from the existing recorded Jev test/OOD cohort. They are separate from the larger [APPO supervision benchmark](APPO_SUPERVISION.md).
+The three systems share case definitions, visible-state questions, candidate actions and the epsilon-greedy controller (`epsilon=0.1`, sampling seed `17`). Untuned Qwen uses original `Qwen/Qwen3-0.6B` weights at revision `c1899de289a04d12100db370d81485cdf75e47ca` and its vocabulary head. Displayed probabilities precede the common exploration step.
 
-NanoJev uses the selected hard-target seed-17 checkpoint, SHA256 `38116340795de1c82369b7fe15819d92d79600a7b4dc7a3cd0d4390cb6782639`. Untuned Qwen uses the original `Qwen/Qwen3-0.6B` checkpoint at revision `c1899de289a04d12100db370d81485cdf75e47ca`, with its original language-model head. Its full action question maps the four candidate IDs to A–D; the displayed distribution is conditional on those offered next-token choices. The baseline has no project training or newly initialized decision head.
+The [Predict Position demo](PREDICT_POSITION_DEMO.md) features the same checkpoint waiting to hit a moving target with its single rocket. Maze shows a **16×16** run completed in **147 steps** by NanoJev and **154** by Jev; Qwen reaches the **160-step limit**. Snake shows NanoJev reaching the **three-food target in 40 steps**, Jev in **126**, and Qwen colliding at step **6**. The Snake objective is collecting three food items.
 
-In this cohort, Jev and Untuned Qwen have the same dominant action at every visited state and execute identical action sequences under the common controller. Their probabilities differ, and the viewer preserves both recordings. NanoJev also chooses movement actions to align its shots.
+## Export and verify
 
-The default case is `test-doom_basic-328003`: NanoJev eliminates the target in **33 ticks with one round**, while both other policies reach the **286-tick deadline**. This is an outcome-selected illustration, chosen for the initial target's horizontal offset. All twelve cases, including six where every system succeeds, remain selectable.
-
-## Real frames and verification
-
-The exporter resets the original environment with each recorded seed and replays every executed action. It checks all observations, rewards, termination flags, counters, and final results against the source. A wrapper captures RGB after each existing one-tick simulator call without advancing extra time. Each exported image is placed in a lossless WebP atlas and decoded back to verify exact pixels.
-
-The reader contains **5,219 frames across 36 complete runs**. If ViZDoom has no terminal image, `image_tick` identifies the last available real frame. The terminal status and outcome still come from the actual final transition. The timeline measures game ticks; the bars preserve model probabilities before exploration, and the highlighted action is the one actually executed.
-
-The desktop/mobile browser check verifies all twelve cases, including 279 canvas comparisons against the decoded source image crops, action bars, playback controls, case selection, and terminal holds. Source and asset hashes are recorded in the [media receipt](../results/shooting_demo_v1/build_manifest.json).
-
-## Reproduce
-
-Use the recorded case registry and the standard inference dependencies. The two model runs require the corresponding locally available weights. Frame export needs only the CPU dependencies in `requirements-shooting-demo.txt`.
+Each exporter replays complete recorded decisions in the original environment on CPU. Every observation, reward, transition and final outcome must match the source. ViZDoom images are captured after existing one-tick calls and decoded from lossless WebP atlases to verify exact pixels. No extra simulator ticks or model calls are added.
 
 ```bash
-python scripts/unified_game_pipeline.py rollout \
-  --cases configs/shooting_demo_v1_cases.jsonl \
-  --output runs/shooting_demo_v1/nanojev.jsonl \
-  --engine checkpoint --checkpoint /path/to/hard_s17 \
-  --controller greedy --epsilon 0.1 --seed 17 --splits test,ood \
-  --env-batch 12 --batch-questions 12 --max-length 8192
-
-python scripts/evaluate_native_qwen_shooting.py \
-  --cases configs/shooting_demo_v1_cases.jsonl \
-  --output runs/shooting_demo_v1/base.jsonl \
-  --controller greedy --epsilon 0.1 --seed 17 --splits test,ood \
-  --batch-states 4 --max-length 8192 --precision bf16
-
-python scripts/build_shooting_demo.py \
-  --jev data/unified_v2/jev_complete.jsonl \
-  --nanojev runs/shooting_demo_v1/nanojev.jsonl \
-  --base runs/shooting_demo_v1/base.jsonl \
-  --cases configs/shooting_demo_v1_cases.jsonl \
-  --output web/dev
+python scripts/build_unified_basic_demo.py \
+  --output runs/unified_basic_demo_export \
+  --receipt runs/unified_basic_demo_export/receipt.json
 
 python3 -m http.server 8081 --bind 127.0.0.1 --directory web
 ```
 
-Open `http://127.0.0.1:8081/dev/`. Run `scripts/check_shooting_demo.mjs` with `--url` and a fresh `--output` directory; provide the local `PLAYWRIGHT_MODULE` and `CHROME_EXECUTABLE` paths through the environment.
+Open `http://127.0.0.1:8081/dev/`. Export paths must be fresh; the recorded experiment files are inputs. `--validate-only` checks sources, model identity and selected outcomes without rendering.
 
-`scripts/stage_development_site.py` copies an explicit static asset list into a separate hosting checkout. It creates independent navigation and canonical metadata for the copied Maze/Snake page. The existing public site's checkout and deployment remain unchanged. The standalone site contains recorded media and viewer code; model weights and credentials remain outside the hosting bundle.
+`scripts/check_unified_development_demo.mjs` checks all four tasks, checkpoint identity, displayed frames, recorded outcomes, controls, navigation and desktop/mobile layout. `scripts/stage_development_site.py` stages the independent development assets and requires matching checkpoint hashes across the four tasks. The hosting bundle contains viewer code and recorded media.

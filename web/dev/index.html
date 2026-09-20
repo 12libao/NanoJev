@@ -7,6 +7,8 @@
   <meta name="description" content="Explore recorded ViZDoom gameplay from Jev, NanoJev and untuned Qwen on one shared tick timeline.">
   <title>NanoJev Development — Shooting</title>
   <link rel="stylesheet" href="shooting.css">
+  <link rel="stylesheet" href="predict-position.css">
+  <script src="basic.js" defer></script>
   <script src="shooting.js" defer></script>
 </head>
 <body>
@@ -17,8 +19,8 @@
         <span>NanoJev</span><span class="development">Development</span>
       </a>
       <nav class="game-nav" aria-label="Game demos">
-        <a href="../side-by-side.html#maze"><span aria-hidden="true">▦</span> Maze</a>
-        <a href="../side-by-side.html#snake"><span aria-hidden="true">⌁</span> Snake</a>
+        <a href="side-by-side.html#maze"><span aria-hidden="true">▦</span> Maze</a>
+        <a href="side-by-side.html#snake"><span aria-hidden="true">⌁</span> Snake</a>
         <a href="./" class="active" aria-current="page"><span class="crosshair" aria-hidden="true"></span> Basic</a>
         <a href="predict-position.html">Predict Position</a>
       </nav>
@@ -28,10 +30,12 @@
       <div>
         <p class="eyebrow"><span></span> THE DECISION ARCADE / VIZDOOM</p>
         <h1>Three models.<br class="mobile-break"> One arena<span>.</span></h1>
-        <p class="hero-description">Watch the aim. Follow the decision. Replay three recorded runs on the same clock.</p>
+        <p class="hero-description">The updated unified model takes aim. Compare its real gameplay with Jev and untuned Qwen.</p>
       </div>
       <div class="recording-mark"><span class="record-icon" aria-hidden="true"></span><div><strong>Recorded gameplay</strong><span id="recordingDetail">Original frames &amp; model decisions</span></div></div>
     </section>
+
+    <div class="featured-replay"><div><span class="feature-label">FEATURED WIN</span><strong>NanoJev hits. Both baselines miss.</strong><span>Same target, same starting state, same controller.</span></div><button id="playFeatured" type="button" disabled>▶ Play the NanoJev win</button></div>
 
     <div id="loadState" class="load-state" role="status" aria-live="polite">
       <span class="spinner" aria-hidden="true"></span><div><strong>Loading the recordings</strong><p>Preparing the shared arena and its decision timeline.</p></div>
@@ -43,6 +47,7 @@
         <label class="case-picker"><span>CASE</span><select id="caseSelect" aria-label="Choose a recorded case"></select><span class="select-chevron" aria-hidden="true">⌄</span></label>
       </header>
       <div class="case-context"><span id="caseMetadata"></span><span id="protocolLabel"></span></div>
+      <p id="caseDescription" class="case-description"></p>
       <div id="modelCards" class="model-cards"></div>
 
       <section class="transport" aria-label="Shared playback controls">
@@ -61,7 +66,8 @@
       <p id="cohortNote" class="cohort-note" hidden>Jev and Untuned Qwen take the same actions in this cohort; their recorded probabilities differ.</p>
       <div id="caseLoading" class="case-loading" hidden role="status"><span class="spinner" aria-hidden="true"></span> Loading arena frames…</div>
     </section>
-    <footer class="site-footer"><span>SMALL MODEL. VISIBLE DECISIONS.</span><span>NanoJev <i></i> Development arcade</span></footer>
+    <section class="benchmark-section" aria-labelledby="benchmarkTitle"><div class="benchmark-heading"><div><p class="eyebrow">BEYOND THE SELECTED REPLAYS</p><h2 id="benchmarkTitle">All 128 test episodes.</h2></div><p>Actual target eliminations · same controller and seeds</p></div><div id="benchmarkStrip" class="benchmark-strip"></div><p class="benchmark-note" id="benchmarkNote"></p></section>
+    <footer class="site-footer"><span>SMALL MODEL. VISIBLE DECISIONS.</span><span>NanoJev <i></i> Unified model · step 400</span></footer>
   </main>
 
   <template id="cardTemplate">

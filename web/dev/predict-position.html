@@ -19,8 +19,8 @@
         <span>NanoJev</span><span class="development">Development</span>
       </a>
       <nav class="game-nav" aria-label="Game demos">
-        <a href="../side-by-side.html#maze"><span aria-hidden="true">▦</span> Maze</a>
-        <a href="../side-by-side.html#snake"><span aria-hidden="true">⌁</span> Snake</a>
+        <a href="side-by-side.html#maze"><span aria-hidden="true">▦</span> Maze</a>
+        <a href="side-by-side.html#snake"><span aria-hidden="true">⌁</span> Snake</a>
         <a href="./"><span class="crosshair" aria-hidden="true"></span> Basic</a>
         <a href="predict-position.html" class="active" aria-current="page">Predict Position</a>
       </nav>
@@ -36,6 +36,8 @@
     </section>
 
     <div class="task-primer" aria-label="How Predict Position works"><span><b>01</b> Track the moving target</span><i aria-hidden="true">→</i><span><b>02</b> Choose when to fire</span><i aria-hidden="true">→</i><span><b>03</b> Land the single rocket</span></div>
+
+    <div class="featured-replay"><div><span class="feature-label">FEATURED WIN</span><strong>NanoJev waits, fires, and hits.</strong><span>Jev and untuned Qwen fire early and miss this moving target.</span></div><button id="playFeatured" type="button" disabled>▶ Play the NanoJev win</button></div>
 
     <div id="loadState" class="load-state" role="status" aria-live="polite">
       <span class="spinner" aria-hidden="true"></span><div><strong>Loading the recordings</strong><p>Preparing the shared arena and its decision timeline.</p></div>
@@ -69,7 +71,7 @@
       <div id="caseLoading" class="case-loading" hidden role="status"><span class="spinner" aria-hidden="true"></span> Loading arena frames…</div>
     </section>
     <section class="benchmark-section" aria-labelledby="benchmarkTitle"><div class="benchmark-heading"><div><p class="eyebrow">BEYOND THIS ONE REPLAY</p><h2 id="benchmarkTitle">All 128 test episodes.</h2></div><p>Actual target eliminations · same controller and seeds</p></div><div id="benchmarkStrip" class="benchmark-strip"></div><p class="benchmark-note" id="benchmarkNote"></p></section>
-    <footer class="site-footer"><span>SMALL MODEL. VISIBLE DECISIONS.</span><span>NanoJev <i></i> Development arcade</span></footer>
+    <footer class="site-footer"><span>SMALL MODEL. VISIBLE DECISIONS.</span><span>NanoJev <i></i> Unified model · step 400</span></footer>
   </main>
 
   <template id="cardTemplate">

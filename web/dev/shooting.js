@@ -282,7 +282,7 @@
       document.dispatchEvent(new CustomEvent('nanojev:recordings', { detail: data }));
       for (const [index, item] of data.cases.entries()) {
         const option = document.createElement('option'); option.value = item.id;
-        option.textContent = data.task === 'predict_position' ?
+        option.textContent = item.title ?
           `${String(index + 1).padStart(2, '0')} · ${item.title} · ${item.seed}` :
           `${String(index + 1).padStart(2, '0')} · ${String(item.split).toUpperCase()} · Seed ${item.seed}`;
         $('caseSelect').append(option);

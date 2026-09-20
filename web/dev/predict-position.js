@@ -11,6 +11,10 @@
 
   document.addEventListener('nanojev:recordings', ({ detail }) => {
     recordings = detail;
+    const featured = detail.cases.find(row => row.id === detail.default_case_id);
+    if (!featured || featured.systems.some(system => system.success !== (system.id === 'nanojev'))) {
+      throw new Error('The featured replay must be a recorded NanoJev-only success.');
+    }
     const cells = ORDER.map(id => {
       const row = detail.summary[id].test;
       if (!row || row.episodes !== 128 || !Number.isInteger(row.successes) || row.successes < 0 || row.successes > row.episodes) {
@@ -59,7 +63,15 @@
     $('timelineNote').textContent = `${speed < 1 ? 'Slow motion' : speed === 1 ? 'Real time' : 'Fast playback'} · ${speed}× playback. All panels share the same game clock.`;
   }
   $('speed').addEventListener('change', playbackNote);
+  $('playFeatured').addEventListener('click', async () => {
+    $('playFeatured').disabled = true;
+    try {
+      await window.nanojevShooting.setCase(recordings.default_case_id);
+      window.nanojevShooting.play();
+    } finally { $('playFeatured').disabled = !window.nanojevShooting.ready; }
+  });
   document.addEventListener('nanojev:tick', ({ detail }) => {
+    $('playFeatured').disabled = false;
     for (const system of detail.systems) {
       const card = document.querySelector(`.model-card[data-model="${system.id}"]`);
       const recorded = current.systems.find(row => row.id === system.id);

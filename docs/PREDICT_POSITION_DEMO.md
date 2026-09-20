@@ -3,10 +3,12 @@
 [Open the Predict Position replay](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position.html).
 
 The light development viewer shows **Jev, NanoJev and Untuned Qwen** playing
-the same moving-target scenario. Watch the original game frames, action
+the same moving-target scenario. Maze, Snake and Basic now use this same unified
+step-400 checkpoint in the [development arcade](SHOOTING_DEMO.md). Watch the original game frames, action
 probabilities, actual rocket launch times and final outcomes on one shared
 physical clock. Playback starts paused at **0.5× speed**; play, seek, step one
-tick or jump directly to any model's shot.
+tick or jump directly to any model's shot. The **Play the NanoJev win** button
+returns to the featured NanoJev-only success and starts playback.
 
 ![Predict Position recorded comparison](../assets/predict_position_development.png)
 

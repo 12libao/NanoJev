@@ -44,7 +44,8 @@ def main():
                                            'static': {'directory': 'dist'}}, indent=2) + '\n')
     dist = project / 'dist'
     dist.mkdir(exist_ok=True)
-    entry_files = ('index.html', 'shooting.css', 'shooting.js', 'shooting_results.json')
+    entry_files = ('index.html', 'shooting.css', 'shooting.js', 'shooting_results.json',
+                   'basic.js', 'predict-position.css')
     files = [(source / 'dev' / name, Path(name)) for name in entry_files]
     media = sorted((source / 'dev/media').glob('shooting_*.webp'))
     if not media or any(not p.is_file() for p, _ in files):
@@ -58,7 +59,7 @@ def main():
         for case in pp['cases']:
             if {s['id'] for s in case['systems']} != {'jev', 'nanojev', 'base'}:
                 raise ValueError('Predict Position requires all three recorded models')
-        prediction_files = ('predict-position.html', 'predict-position.css',
+        prediction_files = ('predict-position.html',
                             'predict-position.js', 'predict_position_results.json')
         for name in prediction_files:
             original = source / 'dev' / name
@@ -69,14 +70,31 @@ def main():
         if not prediction_media:
             raise ValueError('Missing real Predict Position frame atlases')
         files.extend((p, p.relative_to(source / 'dev')) for p in prediction_media)
-    # These are independent copies; the original public hosting checkout is never opened.
-    files.extend((source / name, Path(name)) for name in (
+    # Current unified-policy recordings have their own development-only viewer.
+    navigation = json.loads((source / 'dev/side_by_side_results.json').read_text())
+    checkpoint = data.get('protocol', {}).get('selected_checkpoint_sha256')
+    if not checkpoint or navigation.get('protocol', {}).get('selected_checkpoint_sha256') != checkpoint:
+        raise ValueError('Navigation and Basic must use the same current checkpoint')
+    if prediction.exists() and pp.get('protocol', {}).get('selected_checkpoint_sha256') != checkpoint:
+        raise ValueError('All four tasks must use the same current checkpoint')
+    files.extend((source / 'dev' / name, Path(name)) for name in (
         'side-by-side.html', 'side-by-side.css', 'side-by-side.js', 'side_by_side_results.json'))
     allowed = {relative.as_posix() for _, relative in files} | {'source_manifest.json'}
     unexpected = [p.relative_to(dist).as_posix() for p in dist.rglob('*')
                   if p.is_file() and p.relative_to(dist).as_posix() not in allowed]
-    if unexpected:
-        raise ValueError('Unexpected pre-existing development assets: ' + ', '.join(unexpected))
+    # Retire only unchanged Basic atlases owned by the previous staging receipt.
+    # Unknown files or locally edited assets are never removed.
+    previous_manifest = dist / 'source_manifest.json'
+    previous = json.loads(previous_manifest.read_text()) if previous_manifest.exists() else {}
+    owned = {row['asset']: row for row in previous.get('files', [])}
+    obsolete = []
+    for name in unexpected:
+        row, path = owned.get(name), dist / name
+        if (not row or not name.startswith('media/shooting_') or not name.endswith('.webp')
+                or not row.get('source', '').startswith('dev/media/shooting_') or path.is_symlink()
+                or hashlib.sha256(path.read_bytes()).hexdigest() != row.get('sha256')):
+            raise ValueError('Unexpected or modified pre-existing development asset: ' + name)
+        obsolete.append(path)
     records = []
     for original, relative in files:
         if original.is_symlink():
@@ -109,13 +127,16 @@ def main():
                         'bytes': target.stat().st_size,
                         'transforms': transforms,
                         'sha256': hashlib.sha256(target.read_bytes()).hexdigest()})
+    for path in obsolete:
+        path.unlink()
     (dist / 'source_manifest.json').write_text(json.dumps(
         {'schema': 'nanojev-development-static-v1', 'files': records}, indent=2) + '\n')
     marker.write_text(json.dumps({'role': 'independent_development_viewer',
                                  'site_url': site_url,
                                  'public_site_modified': False}, indent=2) + '\n')
     print(json.dumps({'project': str(project), 'assets': len(records),
-                      'static_bytes': sum(r['bytes'] for r in records)}))
+                      'static_bytes': sum(r['bytes'] for r in records),
+                      'retired_basic_atlases': len(obsolete)}))
 
 
 if __name__ == '__main__':
