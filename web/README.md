@@ -2,6 +2,8 @@
 
 **A nano replica of [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev).** The English interface reads recorded model results from local JSON files. It uses plain HTML, CSS, and JavaScript, with no framework or external scripts.
 
+**[Open the independent development arcade](https://nanojev-dev.tianyuchen99.chatgpt.site/)** for the new ViZDoom shooting comparison. Its twelve cases show Jev, the latest NanoJev shooting policy, and the original untuned Qwen using real RGB frames on a shared physical-tick timeline. [Implementation and recording details](../docs/SHOOTING_DEMO.md). Locally, open `/dev/` on the web server below.
+
 **[Open the standalone side-by-side site](https://nanojev.tianyuchen99.chatgpt.site)** · [Snake](https://nanojev.tianyuchen99.chatgpt.site/#snake) · [Maze](https://nanojev.tianyuchen99.chatgpt.site/#maze)
 
 From the repository root:
