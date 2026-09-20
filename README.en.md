@@ -63,7 +63,7 @@ The current release is **`hard_lr1e5`, step 400**: one shared model trained with
 
 The hard-target and soft-target variants each contain **18,760 rows across train, dev, calibration, test and OOD**. The selected hard-target training split has **10,898 rows**, including **6,788 Predict Position questions**; **10,893** training questions pass the target-validity filter. Existing Maze, Snake and Basic splits are preserved. The package also includes the matched soft-target variant, expert trajectories and evaluation records.
 
-The development model and data are on Hugging Face in the repositories linked above. Sign in with the authorized account to download them.
+**Hugging Face upload in progress:** the current model and complete dataset are being uploaded to the development repositories linked above as `unified-games-v1`. The download commands below are ready for that release.
 
 ## Quick start
 
@@ -81,12 +81,14 @@ from huggingface_hub import snapshot_download
 
 snapshot_download(
     repo_id="C-Tianyu/NanoJev-dev",
+    revision="unified-games-v1",
     local_dir="checkpoints/NanoJev-unified",
     allow_patterns=["best.safetensors", "config.json", "tokenizer/*", "backbone_config/*"],
 )
 snapshot_download(
     repo_id="C-Tianyu/NanoJev-Data-dev",
     repo_type="dataset",
+    revision="unified-games-v1",
     local_dir="data/NanoJev-unified",
 )
 ```
@@ -111,7 +113,7 @@ Open **http://127.0.0.1:8080/dev/side-by-side.html?autoplay=1#maze** or **http:/
 
 ## Development notes
 
-[Input contract](docs/TYPESAFE_CONTRACT.md) · [Unified environments](docs/UNIFIED_GAMES.md) · [Atomic planning](docs/ATOMIC_PLANNING.md) · [Predict Position replay](docs/PREDICT_POSITION_DEMO.md) · [Shooting replay](docs/SHOOTING_DEMO.md)
+[Release contents and reproduction](docs/UNIFIED_DEVELOPMENT_RELEASE.md) · [Input contract](docs/TYPESAFE_CONTRACT.md) · [Unified environments](docs/UNIFIED_GAMES.md) · [Atomic planning](docs/ATOMIC_PLANNING.md) · [Predict Position replay](docs/PREDICT_POSITION_DEMO.md) · [Shooting replay](docs/SHOOTING_DEMO.md)
 
 ## Roadmap
 

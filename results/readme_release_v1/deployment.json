@@ -16,5 +16,6 @@
   ],
   "live_asset_checks": 59,
   "public_site_and_source_guard_passed": true,
-  "local_archive_sha256": "4761ab1153fa7cc2b28790df1db69a6407a4f00d0d821dcd0cdbfd73aafb54f8"
+  "local_archive_sha256": "4761ab1153fa7cc2b28790df1db69a6407a4f00d0d821dcd0cdbfd73aafb54f8",
+  "development_readme_commit": "4a68a99"
 }

@@ -99,8 +99,12 @@ The private development checkout contains:
 
 All four complete model bundles also have verified persistent server backups
 under `/data/rwang/nanojev_sonic_sft_20260920/checkpoint_archives/`. The selected
-bundle's 15 files pass local SHA256 verification. The current model and dataset
-remain private development artifacts.
+bundle's 15 files pass local SHA256 verification. The current model and complete
+mixed dataset are being uploaded to the private development repositories
+[NanoJev-dev](https://huggingface.co/C-Tianyu/NanoJev-dev) and
+[NanoJev-Data-dev](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev),
+version `unified-games-v1`. See the
+[unified release contents and verification](UNIFIED_DEVELOPMENT_RELEASE.md).
 
 Selected weights SHA256:
 `f68c47d66998231b86b7e91b4ed5e82ae23acf104c8b7cd6d165c3ac7b7ffe1b`.

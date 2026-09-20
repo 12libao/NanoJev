@@ -63,7 +63,7 @@ NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/intro
 
 hard-target 与 soft-target 两种版本在 train、dev、calibration、test 和 OOD 五个分区各包含 **18,760 条数据**。选定的 hard-target 训练分区为 **10,898 条**，包含 **6,788 条 Predict Position 问题**；通过目标有效性检查、用于训练的问题为 **10,893 条**。原有 Maze、Snake 和 Basic 分区保持一致。数据包还包含匹配的 soft-target 版本、专家轨迹和评测记录。
 
-开发版模型和数据位于上方链接的 Hugging Face 仓库，可登录获授权账户下载。
+**Hugging Face 上传中：** 当前模型与完整数据正在上传至上方开发仓库，版本为 `unified-games-v1`。下方下载命令将在该版本上传完成后可用。
 
 ## 快速开始
 
@@ -81,12 +81,14 @@ from huggingface_hub import snapshot_download
 
 snapshot_download(
     repo_id="C-Tianyu/NanoJev-dev",
+    revision="unified-games-v1",
     local_dir="checkpoints/NanoJev-unified",
     allow_patterns=["best.safetensors", "config.json", "tokenizer/*", "backbone_config/*"],
 )
 snapshot_download(
     repo_id="C-Tianyu/NanoJev-Data-dev",
     repo_type="dataset",
+    revision="unified-games-v1",
     local_dir="data/NanoJev-unified",
 )
 ```
@@ -111,7 +113,7 @@ python3 -m http.server 8080 --bind 127.0.0.1 --directory web
 
 ## 开发文档
 
-[输入契约](docs/TYPESAFE_CONTRACT.md) · [统一环境](docs/UNIFIED_GAMES.md) · [原子判断与规划](docs/ATOMIC_PLANNING.md) · [Predict Position 回放](docs/PREDICT_POSITION_DEMO.md) · [射击回放](docs/SHOOTING_DEMO.md)
+[发布内容与复现方法](docs/UNIFIED_DEVELOPMENT_RELEASE.md) · [输入契约](docs/TYPESAFE_CONTRACT.md) · [统一环境](docs/UNIFIED_GAMES.md) · [原子判断与规划](docs/ATOMIC_PLANNING.md) · [Predict Position 回放](docs/PREDICT_POSITION_DEMO.md) · [射击回放](docs/SHOOTING_DEMO.md)
 
 ## 路线图
 
