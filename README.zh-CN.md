@@ -4,7 +4,7 @@
 
 **一个 0.6B 并行决策模型：输入状态与问题，直接得到完整概率分布，无需生成答案 token。**
 
-[体验 ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze 与 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev-dev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev)
+[体验 ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze 与 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
 
 **现在支持 ViZDoom：** 同一个 checkpoint 完成 Basic 的瞄准射击、Predict Position 的移动目标火箭射击，同时支持 Maze 和 Snake。
 
@@ -90,7 +90,7 @@ NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/intro
 
 **Hugging Face 发布完成：** 模型与完整数据均已上传并通过校验，版本为 `unified-games-v1`。两个发布标签均固定到对应快照，所有上传文件均通过远端内容校验。
 
-新版 Hugging Face 快照当前为私有，下载需要仓库访问权限。
+模型与数据集均为公开版本，无需登录即可下载。
 
 ## 快速开始
 
@@ -98,7 +98,6 @@ NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/intro
 git clone https://github.com/TianyuCodings/NanoJev.git
 cd NanoJev
 python -m pip install -r requirements-toy.txt huggingface_hub
-hf auth login
 ```
 
 下载当前 checkpoint 与数据：
@@ -107,13 +106,13 @@ hf auth login
 from huggingface_hub import snapshot_download
 
 snapshot_download(
-    repo_id="C-Tianyu/NanoJev-dev",
+    repo_id="C-Tianyu/NanoJev",
     revision="unified-games-v1",
     local_dir="checkpoints/NanoJev-unified",
     allow_patterns=["best.safetensors", "config.json", "tokenizer/*", "backbone_config/*"],
 )
 snapshot_download(
-    repo_id="C-Tianyu/NanoJev-Data-dev",
+    repo_id="C-Tianyu/NanoJev-Data",
     repo_type="dataset",
     revision="unified-games-v1",
     local_dir="data/NanoJev-unified",

@@ -4,7 +4,7 @@
 
 **A 0.6B parallel decision model: states and questions in, complete probability distributions out. Zero output-token decoding.**
 
-[Play ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze & Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [Model](https://huggingface.co/C-Tianyu/NanoJev-dev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev)
+[Play ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/predict-position?autoplay=1) · [Maze & Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [Model](https://huggingface.co/C-Tianyu/NanoJev) · [Dataset](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
 
 **Now playing ViZDoom:** one shared checkpoint handles Basic aiming and Predict Position's moving-target rocket shots, alongside Maze and Snake.
 
@@ -90,7 +90,7 @@ The shared model is trained with complete-question cross entropy. Updates mix Ma
 
 **Hugging Face release complete:** the model and complete dataset are uploaded and verified as `unified-games-v1`. Both release tags resolve to their recorded snapshots; every uploaded file passes remote identity checks.
 
-The new Hugging Face snapshots are private and require repository access.
+The model and dataset are public and can be downloaded without signing in.
 
 ## Quick start
 
@@ -98,7 +98,6 @@ The new Hugging Face snapshots are private and require repository access.
 git clone https://github.com/TianyuCodings/NanoJev.git
 cd NanoJev
 python -m pip install -r requirements-toy.txt huggingface_hub
-hf auth login
 ```
 
 Download the current checkpoint and data:
@@ -107,13 +106,13 @@ Download the current checkpoint and data:
 from huggingface_hub import snapshot_download
 
 snapshot_download(
-    repo_id="C-Tianyu/NanoJev-dev",
+    repo_id="C-Tianyu/NanoJev",
     revision="unified-games-v1",
     local_dir="checkpoints/NanoJev-unified",
     allow_patterns=["best.safetensors", "config.json", "tokenizer/*", "backbone_config/*"],
 )
 snapshot_download(
-    repo_id="C-Tianyu/NanoJev-Data-dev",
+    repo_id="C-Tianyu/NanoJev-Data",
     repo_type="dataset",
     revision="unified-games-v1",
     local_dir="data/NanoJev-unified",

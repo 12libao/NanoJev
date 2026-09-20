@@ -85,7 +85,7 @@ predeclared common controller.
 
 ## Artifacts and reproduction
 
-The private development checkout contains:
+Local experiment artifacts are organized as follows:
 
 | Artifact | Location |
 |---|---|
@@ -100,9 +100,9 @@ The private development checkout contains:
 All four complete model bundles also have verified persistent server backups
 under `/data/rwang/nanojev_sonic_sft_20260920/checkpoint_archives/`. The selected
 bundle's 15 files pass local SHA256 verification. The current model and complete
-mixed dataset are available through the private development repositories
-[NanoJev-dev](https://huggingface.co/C-Tianyu/NanoJev-dev) and
-[NanoJev-Data-dev](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev),
+mixed dataset are available through the public Hugging Face repositories
+[NanoJev](https://huggingface.co/C-Tianyu/NanoJev) and
+[NanoJev-Data](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data),
 version `unified-games-v1`. See the
 [unified release contents and verification](UNIFIED_DEVELOPMENT_RELEASE.md).
 

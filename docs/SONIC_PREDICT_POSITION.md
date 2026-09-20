@@ -131,7 +131,7 @@ python scripts/run_sonic_supervision.py \
 ```
 
 The scripts produce complete trajectories, source hashes, data-preparation audits,
-training logs, private checkpoint bundles and model-selection records. The code
+training logs, checkpoint bundles and model-selection records. The code
 does not upload checkpoints or publish a website.
 
 ## Development controller diagnostic

@@ -1,4 +1,4 @@
-# Unified game development release
+# Unified game release
 
 The current NanoJev model covers Maze, Snake, ViZDoom Basic and Predict Position
 with one checkpoint. This release packages the exact step-400 checkpoint used
@@ -7,19 +7,20 @@ mixed datasets and the recorded evaluation inputs.
 
 | Resource | Hugging Face repository | Version |
 |---|---|---|
-| Model, initialization and inference source | [C-Tianyu/NanoJev-dev](https://huggingface.co/C-Tianyu/NanoJev-dev) | `unified-games-v1` |
-| Mixed data, evaluation and demonstration sources | [C-Tianyu/NanoJev-Data-dev](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data-dev) | `unified-games-v1` |
+| Model, initialization and inference source | [C-Tianyu/NanoJev](https://huggingface.co/C-Tianyu/NanoJev) | `unified-games-v1` |
+| Mixed data, evaluation and demonstration sources | [C-Tianyu/NanoJev-Data](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data) | `unified-games-v1` |
 
-**Upload complete and verified.** Both repositories carry the fixed `unified-games-v1` tag. The model contains 149 release files (4,826,215,272 bytes), including the selected checkpoint and initialization; the dataset contains 214 release files (880,105,996 bytes).
+**Upload complete and verified.** Both repositories carry the fixed `unified-games-v1` tag. The model contains 149 release files (4,826,217,398 bytes), including the selected checkpoint and initialization; the dataset contains 214 release files (880,108,238 bytes).
 
-- Model revision: `063c47c28f9ad2a4f20388d1692346b5970e9bc3`.
-- Dataset revision: `a8434f15e2ecc140cd2b61b85cc7bd0111f70551`.
+- Model revision: `047b927b30882a1138fc504821b82ac145a4b81a`.
+- Dataset revision: `7afc5257c0f3ff0ba08512729888a51d94b40e7e`.
 
-All uploaded files pass remote LFS SHA256 or Git blob checks, and 13 representative files pass authenticated download checks.
+All uploaded files pass remote LFS SHA256 or Git blob checks, and 13 representative files pass anonymous download checks. Both checkpoint files also pass anonymous byte-range download checks.
 
-Both repositories are private development releases. Sign in with an account
-that has repository access. Existing public releases keep their original
-contents and revisions.
+Both repositories are public and support downloads without signing in. Earlier
+releases remain available through their original revisions and the
+`legacy-before-unified-games-v1` tag. Their files outside the new release paths
+remain in the repository.
 
 ## Model contents
 
@@ -91,10 +92,10 @@ These selected demonstrations remain separate from the full frozen benchmark.
 Each repository contains `SHA256_MANIFEST.json`. The publication script checks
 every local file before upload, compares remote LFS SHA256 or Git blob identity
 for every uploaded file, downloads representative files to verify their bytes,
-and checks that both release tags resolve to their recorded private revisions.
+and checks that both release tags resolve to their recorded public revisions.
 
 The complete machine-readable result, exact remote revisions, file counts and
-public-repository guards are stored in
-[`results/huggingface_unified_dev_release.json`](../results/huggingface_unified_dev_release.json).
+preserved earlier revisions and private-source checks are stored in
+[`results/huggingface_unified_public_release.json`](../results/huggingface_unified_public_release.json).
 Weights are verified against their remote LFS SHA256 without a second full
 multi-gigabyte download.
