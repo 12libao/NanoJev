@@ -21,7 +21,7 @@
 
 ## 三个模型，并排回放
 
-**[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)、NanoJev 和未微调 Qwen** 的真实网页回放。下方动图自动循环，点击即可进入交互播放器。四款演示使用同一个当前 NanoJev checkpoint。
+**[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)、NanoJev 和未微调 Qwen** 的真实网页回放。下方动图自动循环，点击即可进入交互播放器。四款演示使用同一个当前 NanoJev checkpoint。交互开发站目前需要访问权限；也可按下方命令在本地播放所有录制案例。
 
 ### ViZDoom Predict Position · 把握开火时机
 
@@ -90,11 +90,13 @@ NanoJev 用 **225 次行动**到达出口，[Jev](https://typesafe.ai/blog/intro
 
 **Hugging Face 上传中：** 当前模型与完整数据正在上传至上方开发仓库，版本为 `unified-games-v1`。下方下载命令将在该版本上传完成后可用。
 
+新版 Hugging Face 快照当前为私有，下载需要仓库访问权限。
+
 ## 快速开始
 
 ```bash
-git clone --branch feature/unified-game-policy-iteration https://github.com/TianyuCodings/NanoJev-dev.git
-cd NanoJev-dev
+git clone https://github.com/TianyuCodings/NanoJev.git
+cd NanoJev
 python -m pip install -r requirements-toy.txt huggingface_hub
 hf auth login
 ```

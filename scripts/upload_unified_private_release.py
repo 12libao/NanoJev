@@ -12,7 +12,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import time
+import traceback
 
 os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
@@ -128,17 +130,24 @@ def upload_one(api, token, kind, folder, receipts):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--env', type=Path, required=True)
+    credentials = parser.add_mutually_exclusive_group(required=True)
+    credentials.add_argument('--env', type=Path)
+    credentials.add_argument('--token-stdin', action='store_true',
+                             help='Read one credential from standard input without storing it')
     parser.add_argument('--packages', type=Path, required=True,
                         help='Explicit directory containing the reviewed model/ and dataset/ packages')
     parser.add_argument('--inventory', type=Path, default=Path('runs/hf_unified_release_v1/account_inventory.json'))
     parser.add_argument('--receipts', type=Path, default=Path('runs/hf_unified_release_v1'))
     parser.add_argument('--output', type=Path, default=Path('results/huggingface_unified_dev_release.json'))
     args = parser.parse_args(argv)
-    values = dotenv_values(args.env)
-    tokens = {value for value in values.values() if isinstance(value, str) and value.startswith('hf_')}
-    assert len(tokens) == 1, 'Expected exactly one Hugging Face credential in the supplied .env'
-    token = tokens.pop()
+    if args.token_stdin:
+        token = sys.stdin.readline().strip()
+        assert token.startswith('hf_') and token.isascii() and token.replace('_', '').isalnum()
+    else:
+        values = dotenv_values(args.env)
+        tokens = {value for value in values.values() if isinstance(value, str) and value.startswith('hf_')}
+        assert len(tokens) == 1, 'Expected exactly one Hugging Face credential in the supplied .env'
+        token = tokens.pop()
     api = HfApi(token=token)
     assert api.whoami()['name'] == 'C-Tianyu'
     inventory = json.loads(args.inventory.read_text())
@@ -172,5 +181,7 @@ if __name__ == '__main__':
     except Exception as error:
         # Exception text and HTTP payloads may include signed URLs: report only safe metadata.
         log(phase='failed', error_type=type(error).__name__,
-            http_status=getattr(getattr(error, 'response', None), 'status_code', None))
+            http_status=getattr(getattr(error, 'response', None), 'status_code', None),
+            traceback=[{'file': Path(frame.filename).name, 'line': frame.lineno, 'function': frame.name}
+                       for frame in traceback.extract_tb(error.__traceback__)])
         raise SystemExit(1)

@@ -21,7 +21,7 @@
 
 ## Three models, side by side
 
-Real browser replays of **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev), NanoJev and Untuned Qwen**. These animations loop automatically; click either one to open its interactive player. All four demos use the same current NanoJev checkpoint.
+Real browser replays of **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev), NanoJev and Untuned Qwen**. These animations loop automatically; click either one to open its interactive player. All four demos use the same current NanoJev checkpoint. The interactive development site currently requires access; all recordings can also be played locally using the commands below.
 
 ### ViZDoom Predict Position · Choose the moment
 
@@ -90,11 +90,13 @@ The shared model is trained with complete-question cross entropy. Updates mix Ma
 
 **Hugging Face upload in progress:** the current model and complete dataset are being uploaded to the development repositories linked above as `unified-games-v1`. The download commands below are ready for that release.
 
+The new Hugging Face snapshots are private and require repository access.
+
 ## Quick start
 
 ```bash
-git clone --branch feature/unified-game-policy-iteration https://github.com/TianyuCodings/NanoJev-dev.git
-cd NanoJev-dev
+git clone https://github.com/TianyuCodings/NanoJev.git
+cd NanoJev
 python -m pip install -r requirements-toy.txt huggingface_hub
 hf auth login
 ```
