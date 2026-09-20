@@ -8,6 +8,7 @@ created or updated. Public repositories are observed solely as unchanged guards.
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+import difflib
 import hashlib
 import json
 import os
@@ -52,6 +53,21 @@ def log(**data):
     print(json.dumps(data), flush=True)
 
 
+def validate_lfs_attribute_additions(previous, updated, uploaded_lfs_paths):
+    """Allow Hub-added LFS rules for uploaded files, preserving existing rules."""
+    old_lines, new_lines = previous.splitlines(keepends=True), updated.splitlines(keepends=True)
+    allowed = {name + ' filter=lfs diff=lfs merge=lfs -text' for name in uploaded_lfs_paths}
+    additions = []
+    for operation, _, _, start, end in difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False).get_opcodes():
+        assert operation in ('equal', 'insert'), 'Existing Git attributes changed'
+        if operation == 'insert':
+            for line in new_lines[start:end]:
+                rule = line.rstrip('\r\n')
+                assert rule in allowed, 'Unexpected Git attribute rule'
+                additions.append(rule)
+    return additions
+
+
 def upload_one(api, token, kind, folder, receipts):
     rid = REPOSITORIES[kind]
     manifest = json.loads((folder / 'SHA256_MANIFEST.json').read_text())
@@ -90,9 +106,18 @@ def upload_one(api, token, kind, folder, receipts):
             assert item.blob_id == blob_sha(folder / row['path']), row['path']
             method = 'remote_git_blob_identity_of_local_sha256_verified_bytes'
         verified.append({**row, 'remote_verification': method})
+    managed_attribute_rules = []
     for item in before.siblings:
         if item.rfilename not in names:
-            assert item.rfilename in remote and remote[item.rfilename].blob_id == item.blob_id
+            assert item.rfilename in remote
+            if item.rfilename == '.gitattributes' and remote[item.rfilename].blob_id != item.blob_id:
+                versions = [Path(hf_hub_download(rid, filename='.gitattributes', repo_type=kind,
+                            revision=revision, token=token, cache_dir=receipts / 'readback_cache')).read_text()
+                            for revision in (before.sha, commit.oid)]
+                managed_attribute_rules = validate_lfs_attribute_additions(
+                    *versions, {name for name in names if remote[name].lfs is not None})
+            else:
+                assert remote[item.rfilename].blob_id == item.blob_id
     samples = ['README.md', 'SHA256_MANIFEST.json', 'TRAINING_RECIPE.md']
     samples += ['config.json', 'backbone_config/config.json', 'training_initialization/config.json'] if kind == 'model' else [
         'DATA_STATISTICS.json', 'unified/hard/manifest.json', 'unified/soft/manifest.json',
@@ -121,6 +146,7 @@ def upload_one(api, token, kind, folder, receipts):
         'remote_weight_sha256': {name: item.lfs.sha256 for name, item in remote.items()
                                  if name.endswith('.safetensors') and item.lfs is not None},
         'all_uploaded_hashes_verified': True, 'previous_unrelated_files_preserved': True,
+        'hub_added_lfs_rules': managed_attribute_rules,
         'authenticated_readback': downloads, 'full_weights_redownloaded': False,
         'package_manifest_sha256': sha(folder / 'SHA256_MANIFEST.json')}
     save(receipts / (kind + '_upload_receipt.json'), result)
