@@ -338,6 +338,15 @@ def build_suffix_attention_mask(suffix_lengths, prefix_length, dtype, device=Non
     and to suffix positions `0..q` of its own row. It may never attend to another
     row's suffix, to its own future suffix positions, or to its own padding.
     Pass `dtype=None` to get the boolean allow-mask.
+
+    Note for future readers: because every row's suffix starts at the same column,
+    a global causal mask over the whole concatenated row is *numerically equivalent*
+    to this mask for every real query position (query `P+q` is allowed prefix
+    `0..P-1` plus suffix `0..q` under both). The two differ only for padding queries,
+    whose outputs are discarded. That equivalence was verified by mutation testing,
+    so do not "fix" one into the other expecting a behavioural change; the
+    distinguishing defects are prefix invisibility, cross-row leakage and shifted
+    position ids, which the tests do catch.
     """
     import torch
     if not suffix_lengths:

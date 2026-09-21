@@ -199,7 +199,6 @@ class PlanTests(unittest.TestCase):
         self.assertTrue(group.split_unverified)
         self.assertFalse(declared.get("split_unverified", False))
         self.assertEqual(plan.accounting()["unverified_split_questions"], ["e1"])
-        self.assertEqual(plan.accounting()["unverified_split_questions"], ["e1"])
 
     def test_accounting_counts_each_prefix_once(self):
         examples = [prepared(f"e{i}", f"state {i}", CHOICE) for i in range(3)]
@@ -387,6 +386,19 @@ class MaskTests(unittest.TestCase):
             weights = torch.softmax(mask[0, 0, 0].float(), dim=-1)
             self.assertEqual(float(weights[-1]), 0.0)
 
+    def test_global_causal_mask_is_equivalent_for_real_queries(self):
+        """A global causal mask is *not* a defect here; pin why, by construction."""
+        import torch
+        lengths, prefix = [3, 1], 2
+        exact = build_suffix_attention_mask(lengths, prefix, dtype=None)
+        width = exact.shape[2]
+        total = prefix + width
+        global_causal = torch.tril(torch.ones(total, total, dtype=torch.bool))
+        for row, real in enumerate(lengths):
+            for query in range(real):  # only real query positions are ever read
+                column = prefix + query
+                self.assertTrue(torch.equal(exact[row, 0, query], global_causal[column]))
+
     def test_prefix_columns_are_all_visible(self):
         import torch
         mask = build_suffix_attention_mask([4, 4, 4], prefix_length=5, dtype=None)
@@ -510,6 +522,72 @@ class TinyModelTests(unittest.TestCase):
             leaves, valid = self.model.encode_leaves(examples, 0)
             split = self.model.decision_head(examples, leaves, valid, return_logits=True)[0]
         self.assertTrue(self.torch.equal(combined, split))
+
+    def test_refactor_is_bit_identical_to_the_pre_refactor_release(self):
+        """Independent oracle: a verbatim copy of the 618cea6 `forward`.
+
+        `test_reference_path_is_unchanged_by_the_refactor` compares the combined
+        `forward` against the helpers it calls, so it cannot detect a change that moved
+        both together. This test re-implements the released forward body instead, which
+        is what actually pins the serving path of every published checkpoint.
+        """
+        examples = self._batch(count=2, candidates=4)
+        examples.append(prepared("b1", "shared state",
+                                 {"type": "boolean", "instructions": "Is it true?",
+                                  "criteria": {"false": "no", "true": "yes"}}))
+        examples.append(prepared("e9", "another state",
+                                 {"type": "choice", "instructions": "Pick one.",
+                                  "criteria": {"solo": "a single candidate"}}))
+        with self.torch.inference_mode():
+            reference_logits, reference_valid = self._released_forward(self.model, examples, 0)
+            current_logits, current_valid = self.model(examples, 0)
+        self.assertTrue(self.torch.equal(reference_valid, current_valid))
+        self.assertTrue(self.torch.equal(reference_logits, current_logits),
+                        "the refactor changed released logits")
+
+    @staticmethod
+    def _released_forward(model, examples, pad_token):
+        """Verbatim body of `DecisionModel.forward` at commit 618cea6."""
+        torch = TinyModelTests.torch
+        F = torch.nn.functional
+        paths = [ids for ex in examples for ids in ex['leaf_tokens']]
+        device = model.scalar.weight.device
+        lengths = torch.tensor([len(ids) for ids in paths], device=device)
+        width = int(lengths.max())
+        tokens = torch.full((len(paths), width), pad_token, dtype=torch.long, device=device)
+        for i, ids in enumerate(paths):
+            tokens[i, :len(ids)] = torch.tensor(ids, device=device)
+        attention = torch.arange(width, device=device)[None, :] < lengths[:, None]
+        hidden = model.backbone(input_ids=tokens, attention_mask=attention,
+                                use_cache=False).last_hidden_state
+        leaves = hidden[torch.arange(len(paths), device=device), lengths - 1]
+        kmax = max(len(ex['candidate_ids']) for ex in examples)
+        h = leaves.new_zeros((len(examples), kmax, leaves.shape[-1]))
+        valid = torch.zeros((len(examples), kmax), dtype=torch.bool, device=device)
+        offset = 0
+        for i, ex in enumerate(examples):
+            n = len(ex['leaf_tokens'])
+            h[i, :n] = leaves[offset:offset + n]
+            valid[i, :len(ex['candidate_ids'])] = True
+            offset += n
+        h = model.norm(h)
+        z = model.scalar(h).squeeze(-1).float()
+        choice = torch.tensor([i for i, ex in enumerate(examples) if ex['type'] == 'choice'],
+                              device=device)
+        if model.set_head == 'attention' and len(choice):
+            log_k = valid[choice].sum(-1).float().log()[:, None, None].expand(-1, kmax, 1)
+            u = model.set_project(torch.cat([h[choice], log_k.to(h.dtype)], dim=-1))
+            mixed, _ = model.set_attention(u, u, u, key_padding_mask=~valid[choice],
+                                            need_weights=False)
+            delta = model.set_output(torch.tanh(u + mixed)).squeeze(-1).float()
+            z = z.index_add(0, choice, delta)
+        out = []
+        for i, ex in enumerate(examples):
+            if ex['type'] == 'boolean':
+                out.append(F.pad(torch.stack([z[i, 0] * 0, z[i, 0]]), (0, kmax - 2)))
+            else:
+                out.append(z[i])
+        return torch.stack(out).masked_fill(~valid, -1e9), valid
 
     def test_pack_leaves_rejects_wrong_leaf_count(self):
         examples = self._batch(count=1, candidates=2)
@@ -798,6 +876,126 @@ class RealCheckpointTests(unittest.TestCase):
         self.assertEqual(encoder.stats["questions"], len(examples) - encoder.stats["reused_questions"])
         self.assertEqual(encoder.stats["prefix_forwards"], encoder.stats["questions"])
         self.assertEqual(encoder.stats["reused_questions"], 1)
+
+
+class ReleasedCheckpointTests(unittest.TestCase):
+    """Anchor against the published `unified-games-v1` decision checkpoint.
+
+    Skips unless the release is present locally, so the suite stays runnable without
+    a network or a 2.4 GB download:
+
+        python3 - <<'EOF'
+        from huggingface_hub import snapshot_download
+        snapshot_download("C-Tianyu/NanoJev", revision="unified-games-v1",
+                          local_dir="checkpoints/NanoJev-unified")
+        EOF
+    """
+
+    RELEASE_SHA256 = "f68c47d66998231b86b7e91b4ed5e82ae23acf104c8b7cd6d165c3ac7b7ffe1b"
+
+    @classmethod
+    def setUpClass(cls):
+        import os
+        relative = Path("checkpoints") / "NanoJev-unified"
+        candidates = [os.environ.get("NANOJEV_RELEASE_DIR")]
+        candidates += [d / relative for d in [REPO_ROOT, *list(REPO_ROOT.parents)[:3]]]
+        root = next((Path(c) for c in candidates if c and (Path(c) / "best.safetensors").is_file()), None)
+        if root is None:
+            raise unittest.SkipTest("published unified-games-v1 checkpoint not present locally")
+        try:
+            import torch
+            from safetensors.torch import load_file
+            from transformers import AutoConfig, AutoModel, AutoTokenizer
+        except ImportError as error:  # pragma: no cover
+            raise unittest.SkipTest(f"torch/transformers/safetensors unavailable: {error}")
+        cls.torch = torch
+        cls.root = root
+        import hashlib
+        digest = hashlib.sha256()
+        with (root / "best.safetensors").open("rb") as handle:
+            for block in iter(lambda: handle.read(8 * 1024 * 1024), b""):
+                digest.update(block)
+        cls.weights_sha256 = digest.hexdigest()
+        if cls.weights_sha256 != cls.RELEASE_SHA256:
+            raise unittest.SkipTest(f"checkpoint is not the released weights: {cls.weights_sha256}")
+
+        cls.tokenizer = _load_release_tokenizer(AutoTokenizer, root / "tokenizer")
+        config = AutoConfig.from_pretrained(str(root / "backbone_config"), local_files_only=True)
+        config.use_cache = True
+        config._attn_implementation = "sdpa"
+        backbone = AutoModel.from_config(config).float()
+        model = _load_decision_model_class()(backbone, "attention")
+        state = load_file(str(root / "best.safetensors"))
+        missing, unexpected = model.load_state_dict(state, strict=False)
+        if missing or unexpected:
+            raise AssertionError(f"strict load failed: missing={missing} unexpected={unexpected}")
+        cls.model = model.eval()
+
+    def _payload(self, candidates=6, states=2):
+        criteria = {f"room_{i}": f"enter room {i} whose north side is "
+                                 f"{'open' if i % 2 else 'blocked'}" for i in range(candidates)}
+        return {"states": [
+            {"id": f"s{index}",
+             "state": ("Local map: A is north of the exit, B is a wall, C is open. "
+                       "The agent stands in a corridor with two untried exits."),
+             "questions": {
+                 "action": {"type": "choice",
+                            "instructions": "Which room should the agent enter?",
+                            "criteria": criteria},
+                 "safe": {"type": "boolean", "instructions": "Is the chosen room safe?",
+                          "criteria": {"false": "The room contains a wall.",
+                                       "true": "The room is inside the maze and open."}}}}
+            for index in range(states)]}
+
+    def test_released_checkpoint_shared_path_matches_reference(self):
+        from predict_toy_decisions import prepare_examples
+        torch = self.torch
+        examples = prepare_examples(self._payload(), self.tokenizer, 2048)
+        encoder = SharedPrefixEncoder(self.model.backbone,
+                                      pad_token_id=self.tokenizer.pad_token_id,
+                                      device=torch.device("cpu"))
+
+        def run(sharing):
+            with torch.inference_mode():
+                return self.model(examples, self.tokenizer.pad_token_id, prefix_sharing=sharing)
+
+        reference_logits, reference_valid = run(None)
+        shared_logits, shared_valid = run(encoder)
+        self.assertTrue(torch.equal(reference_valid, shared_valid))
+        difference = (reference_logits - shared_logits).abs().max().item()
+        self.assertLess(difference, 1e-3,
+                        f"released checkpoint drift too large: {difference}")
+        # The trained head is deterministic, so the published decision must not move.
+        self.assertTrue(torch.equal(reference_logits.argmax(-1), shared_logits.argmax(-1)))
+        self.assertEqual(encoder.used_shared_prefix, True)
+        accounting = SharedPrefixPlan(examples).accounting()
+        self.assertGreater(accounting["token_reduction"], 1.5)
+        self.assertTrue(accounting["fully_shared"])
+
+
+def _load_release_tokenizer(AutoTokenizer, directory):
+    """Load the release tokenizer, normalizing one upstream export detail.
+
+    transformers 4.51 wrote `extra_special_tokens` as a list; 4.57 expects a mapping and
+    raises while reading it. The release's `tokenizer.json` is byte-identical to the base
+    model's (same SHA256), so only that metadata field is rewritten, in a temp copy of the
+    config, and the vocabulary itself is never touched.
+    """
+    import json
+    import shutil
+    import tempfile
+    if not isinstance(json.loads((directory / "tokenizer_config.json").read_text())
+                      .get("extra_special_tokens"), list):
+        return AutoTokenizer.from_pretrained(str(directory), local_files_only=True)
+    staging = Path(tempfile.mkdtemp(prefix="nanojev-tokenizer-"))
+    for item in directory.iterdir():
+        if item.is_file():
+            shutil.copy2(item, staging / item.name)
+    config_path = staging / "tokenizer_config.json"
+    config = json.loads(config_path.read_text())
+    config["extra_special_tokens"] = {}
+    config_path.write_text(json.dumps(config, indent=2))
+    return AutoTokenizer.from_pretrained(str(staging), local_files_only=True)
 
 
 def _load_decision_model_class():
