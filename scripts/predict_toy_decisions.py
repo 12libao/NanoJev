@@ -149,37 +149,33 @@ def local_checkpoint_files(checkpoint_dir):
     return root, paths
 
 
-def load_encoding_module():
-    """延迟导入规范编码；与 trainer 共用同一份实现。"""
-    path = Path(__file__).with_name("decision_encoding.py")
-    spec = importlib.util.spec_from_file_location("openjev_decision_encoding", path)
+def load_sibling_module(module_name):
+    """Load a sibling script by path without requiring it to be importable.
+
+    Delayed on purpose: schema and tokenization checks must work on a machine without
+    torch, and importing the trainer would execute its module level work.
+    """
+    path = Path(__file__).with_name(module_name + ".py")
+    spec = importlib.util.spec_from_file_location("openjev_" + module_name, path)
     if spec is None or spec.loader is None:
-        raise RuntimeError("无法加载规范决策编码模块")
+        raise RuntimeError(f"无法加载本地模块：{module_name}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_encoding_module():
+    """规范编码；与 trainer 共用同一份实现。"""
+    return load_sibling_module("decision_encoding")
 
 
 def load_decision_model_class():
-    # 延迟导入，schema/分词一致性检查不需要本机安装torch，也不执行trainer.main。
-    path = Path(__file__).with_name("train_toy_decisions.py")
-    spec = importlib.util.spec_from_file_location("openjev_toy_trainer_for_inference", path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError("无法加载本地 DecisionModel 定义")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.DecisionModel
+    return load_sibling_module("train_toy_decisions").DecisionModel
 
 
 def load_shared_prefix_module():
-    """延迟导入共享前缀编码器；schema 检查路径不需要它。"""
-    path = Path(__file__).with_name("shared_prefix.py")
-    spec = importlib.util.spec_from_file_location("openjev_shared_prefix_for_inference", path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError("无法加载本地共享前缀编码器")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    """共享前缀编码器；schema 检查路径不需要它。"""
+    return load_sibling_module("shared_prefix")
 
 
 class DecisionPredictor:
