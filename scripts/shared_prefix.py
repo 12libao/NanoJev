@@ -636,10 +636,21 @@ class SharedPrefixEncoder:
             self.device = next(self.model.parameters()).device
         dtype = self._resolve_dtype()
         leaves = [None] * len(plan.examples)
+        # `plan.covered_by` maps an example index to a *group* index, because groups are
+        # created in encounter order while covered examples are not. Resolve through the
+        # group's own example index; using the group index directly as an example index
+        # silently reads the wrong leaf as soon as a batch has more than one group.
+        group_example = {index: group.example_index for index, group in enumerate(plan.groups)}
         for group in plan.groups:
             leaves[group.example_index] = self._encode_group(group, dtype)
         for index, source in plan.covered_by.items():
-            leaves[index] = leaves[source]
+            if source not in group_example:
+                raise RuntimeError(
+                    f"{plan.examples[index].get('id')}: reuse points at group {source}, "
+                    f"but only {len(plan.groups)} groups exist")
+            leaves[index] = leaves[group_example[source]]
+            if leaves[index] is None:  # pragma: no cover - group order guarantees this
+                raise RuntimeError(f"{plan.examples[index].get('id')}: reused leaf is not encoded")
         missing = [plan.examples[i].get("id") for i, leaf in enumerate(leaves) if leaf is None]
         if missing:
             raise RuntimeError(f"No leaves produced for: {missing}")

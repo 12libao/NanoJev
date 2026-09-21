@@ -623,6 +623,41 @@ class TinyModelTests(unittest.TestCase):
                         "backbone received no gradient through the shared prefix path")
         self.assertTrue(any(name.startswith("scalar") for name in touched))
 
+    def test_reuse_across_two_groups_reads_the_right_leaf(self):
+        """Regression: reuse must resolve through the group's example index.
+
+        `covered_by` maps an example index to a *group* index. Using that group index
+        directly as an example index is accidentally correct while a batch has one group,
+        because the first group is example 0. With two groups the second group's reuse
+        silently read the first group's leaf, which moved the logits by 0.17 and flipped
+        an argmax. Every assertion here is on the values, not on the bookkeeping, because
+        the bookkeeping was right and only the lookup was wrong.
+        """
+        torch = self.torch
+        first = prepared("A1", "shared state one", CHOICE)
+        duplicate_first = dict(first, id="A2")
+        second = prepared("B1", "shared state two", CHOICE)
+        duplicate_second = dict(second, id="B2")
+        examples = [first, duplicate_first, second, duplicate_second]
+
+        plan = SharedPrefixPlan(examples)
+        self.assertEqual([group.example_id for group in plan.groups], ["A1", "B1"])
+        self.assertEqual(plan.covered_by, {1: 0, 3: 1})
+
+        encoder = self._encoder()
+        reference = self._forward(examples, None)
+        shared = self._forward(examples, encoder)
+        self.assertEqual(encoder.stats["questions"], 2)
+        self.assertEqual(encoder.stats["reused_questions"], 2)
+        drift = (reference - shared).abs().max().item()
+        self.assertLess(drift, 1e-4, f"reuse read the wrong leaf: drift {drift}")
+        self.assertTrue(torch.equal(reference.argmax(-1), shared.argmax(-1)))
+        # Reused rows must reproduce their source row exactly, and the two groups must
+        # differ, otherwise this test would pass on a batch that collapsed to one group.
+        self.assertTrue(torch.equal(shared[1], shared[0]))
+        self.assertTrue(torch.equal(shared[3], shared[2]))
+        self.assertFalse(torch.equal(shared[0], shared[2]))
+
     def _encoder(self, suffix_chunk=None):
         # The encoder drives the raw backbone; the decision head is applied by
         # DecisionModel.decision_head after the leaves are packed.
