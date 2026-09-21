@@ -117,23 +117,50 @@ the backbone random — see the artifact's `corrections` field).
 | 16 | 2752 → 1012 | 2.72× | 1114 ms → 616 ms | 1.81× | 8.3e-06 |
 | 64 | 11008 → 3700 | 2.98× | 2976 ms → 1049 ms | 2.84× | 8.9e-06 |
 
-The full artifact is `results/shared_prefix_benchmark.json`. Caveats, in the order they
-matter:
+The full artifact is `results/shared_prefix_benchmark.json`.
 
-* **Small `K` does not reliably win.** At 4 candidates the median is 1.13× and the best
-  single sample was 0.96×, i.e. no gain. On CPU float32 the same configuration measured
-  **0.73×** — slower — because the per-question prefix prefill and the additive 4D mask cost
-  more than they save when the prefix is short. Treat the optimization as worthwhile from
-  roughly `K >= 16`, and measure your own workload.
-* Timings on this machine are noisy (MPS medians moved by ~50% between runs). Token
-  reduction is exact and hardware independent; wall clock is recorded, never promised.
+### When it pays off
+
+There is no single candidate-count threshold: the benefit depends on the candidate count, the
+shared prefix length, the per-candidate suffix width and the chunk size, together. Measured
+points from an independent review on the same machine (M1 Max, MPS, fp32, SDPA, released
+weights loaded strictly, device-synchronised timing, alternating order, median of five):
+
+| Workload | Reference | Shared | Ratio |
+| --- | ---: | ---: | ---: |
+| 2 candidates, 66-token prefix | 105 ms | 162 ms | **0.65x** |
+| 4 candidates, 66-token prefix | 188 ms | 182 ms | 1.03x |
+| 16 candidates, 66-token prefix | 645 ms | 442 ms | 1.46x |
+| 64 candidates, 66-token prefix | 5400 ms | 1762 ms | 3.06x |
+| 255 candidates, 66-token prefix | 8738 ms | 3586 ms | 2.44x |
+| 16 candidates, 696-token prefix | 3820 ms | 635 ms | 6.02x |
+
+Read as a rule of thumb rather than a threshold:
+
+* **Candidate count sets the ceiling.** The prefix is re-encoded `K` times in the reference
+  and once here, so the removable work grows with `K` while the per-question overhead does
+  not. Single-digit `K` is where the overhead wins and the change is a regression.
+* **Prefix length sets the payoff.** The same 16 candidates went from 1.46x to 6.02x when the
+  prefix grew tenfold, because the re-encoded prefix is what is being removed. Long state
+  text is the case this change exists for.
+* **Chunking trades memory for speed.** Capping suffix rows reduced a 16-candidate case to
+  `0.72x` in that review. Chunk only when the cache is the binding constraint.
+* **Few-token candidates lose either way.** A Boolean question has one short path, so a batch
+  of them measured `0.40x`. This change is for many-candidate Choice and Score questions.
+
+Other caveats:
+
+* Timings on this machine are noisy (MPS medians moved ~50% between runs). Token reduction is
+  exact and hardware independent; wall clock is recorded, never promised. The review's numbers
+  and this document's differ for that reason; both are single-machine observations.
 * Token reduction is not wall-clock reduction: the suffix pass still attends over the cached
-  prefix, so attention cost grows with prefix length even though the prefix is not
-  re-encoded.
+  prefix, so attention cost grows with prefix length even though the prefix is not re-encoded.
 * The memory complexity claim was **wrong in an earlier revision of this document** and is
-  corrected above: the suffix pass holds `O(chunk * (P + S))`.
-* Only eager and SDPA were measured. The production path is CUDA bfloat16, which was not
-  available here.
+  corrected above: the suffix pass holds `O(chunk * (P + S))`. A module-boundary sample in the
+  same review measured roughly 71 MB additional live tensors for the reference, 729 MB shared,
+  and 201 MB shared with `suffix_chunk=4` at 16 candidates, so do not expect a memory win.
+* Only eager and SDPA were measured, on CPU and MPS. The production path is CUDA bfloat16,
+  which was not available. The default stays `prefix_sharing=False` for this reason.
 
 ## Using it
 

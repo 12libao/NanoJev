@@ -162,7 +162,11 @@ class PrefixGroup:
         return self.prefix_length + self.suffix_width
 
     def reference_path_tokens(self):
-        """Path tokens the reference implementation would evaluate for this question."""
+        """Path tokens the reference implementation evaluates for one copy of this question.
+
+        A reused question still appears in the input and the reference pays for every copy;
+        `SharedPrefixPlan.reference_leaf_tokens` multiplies this by the occurrence count.
+        """
         return self.path_count * self.path_width
 
     def shared_path_tokens(self, suffix_chunk=None):
@@ -184,16 +188,6 @@ class PrefixGroup:
             chunk = widths[start:start + suffix_chunk]
             total += len(chunk) * max(chunk)
         return total
-
-    def reference_path_tokens_for(self, occurrences):
-        """Reference cost for `occurrences` copies of this question.
-
-        A reused question still appears in the input, and the reference encoder pays for
-        every copy; only the shared encoder deduplicates it.
-        """
-        if type(occurrences) is not int or occurrences < 1:
-            raise ValueError("occurrences must be a positive integer")
-        return self.path_count * occurrences * self.path_width
 
 
 class SharedPrefixPlan:
@@ -569,10 +563,6 @@ class SharedPrefixEncoder:
     def runner(self):
         """The callable that performs the backbone forward passes."""
         return self.model
-
-    def reset_stats(self):
-        for key in self.stats:
-            self.stats[key] = 0
 
     # -- internals --------------------------------------------------------
     def _resolve_dtype(self):
