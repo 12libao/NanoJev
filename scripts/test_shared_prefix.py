@@ -247,7 +247,7 @@ class PlanTests(unittest.TestCase):
         self.assertGreater(plan.accounting()["reference_leaf_tokens"],
                            sum(len(path) for ex in examples for path in ex["leaf_tokens"]))
         self.assertEqual(plan.accounting()["shared_leaf_tokens"],
-                         3 * prefix + sum(len(s) for g in plan.groups for s in g.suffix_tokens))
+                         sum(g.shared_path_tokens() for g in plan.groups))
         self.assertEqual(plan.accounting()["candidates"], 9)
         self.assertEqual(plan.accounting()["shared_prefix_tokens"], 3 * prefix)
         self.assertEqual(plan.accounting()["reference_prefix_tokens"], 9 * prefix)
@@ -261,8 +261,9 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(plan.accounting()["reference_leaf_tokens"],
                          2 * max(len(path) for path in example["leaf_tokens"]))
         group = plan.groups[0]
-        self.assertEqual(plan.accounting()["shared_leaf_tokens"],
-                         group.prefix_length + sum(len(s) for s in group.suffix_tokens))
+        self.assertEqual(plan.accounting()["shared_leaf_tokens"], group.shared_path_tokens())
+        self.assertGreaterEqual(plan.accounting()["shared_leaf_tokens"],
+                                plan.accounting()["shared_leaf_tokens_unpadded"])
 
     def test_reduction_grows_with_candidate_count(self):
         previous = 0.0
@@ -274,6 +275,55 @@ class PlanTests(unittest.TestCase):
             self.assertGreater(reduction, previous)
             previous = reduction
         self.assertGreater(previous, 3.0)
+
+    def test_uneven_suffixes_are_counted_at_the_padded_width(self):
+        """Regression: summing raw suffix lengths overstated the saving.
+
+        With P=3 and suffix lengths 2 and 101 the encoder pads both rows to 101, so the
+        shared cost is 205 against a reference of 208 — a 1.01x reduction. Counting raw
+        suffix lengths reported 106 and a 1.96x reduction that does not exist.
+        """
+        example = {"id": "uneven", "type": "choice", "prefix_length": 3,
+                   "candidate_ids": ["0", "1"],
+                   "leaf_tokens": [[10, 11, 12, 30, 1], [10, 11, 12] + [31] * 100 + [1]]}
+        accounting = SharedPrefixPlan([example]).accounting()
+        self.assertEqual(accounting["reference_leaf_tokens"], 2 * 104)
+        self.assertEqual(accounting["shared_leaf_tokens"], 3 + 2 * 101)
+        self.assertEqual(accounting["shared_leaf_tokens_unpadded"], 3 + 2 + 101)
+        self.assertAlmostEqual(accounting["token_reduction"], 208 / 205, places=6)
+        self.assertGreater(accounting["shared_leaf_tokens"],
+                           accounting["shared_leaf_tokens_unpadded"])
+
+    def test_suffix_chunking_changes_the_reported_shared_cost(self):
+        """Chunk boundaries decide padding, so the accounting must take the chunk size."""
+        example = {"id": "ragged", "type": "choice", "prefix_length": 3,
+                   "candidate_ids": ["0", "1", "2"],
+                   "leaf_tokens": [[1, 2, 3] + [9] * 10 + [1],
+                                   [1, 2, 3] + [9] * 2 + [1],
+                                   [1, 2, 3] + [9] * 20 + [1]]}
+        plan = SharedPrefixPlan([example])
+        self.assertEqual(plan.accounting(None)["shared_leaf_tokens"], 3 + 3 * 21)
+        self.assertEqual(plan.accounting(1)["shared_leaf_tokens"], 3 + 11 + 3 + 21)
+        self.assertEqual(plan.accounting(2)["shared_leaf_tokens"], 3 + 2 * 11 + 21)
+        for chunk in (None, 1, 2, 3):
+            accounting = plan.accounting(chunk)
+            self.assertEqual(accounting["suffix_chunk_assumed"], chunk)
+            self.assertGreaterEqual(accounting["shared_leaf_tokens"],
+                                    accounting["shared_leaf_tokens_unpadded"])
+
+    def test_reference_cost_counts_reused_examples(self):
+        """The reference evaluates each supplied copy; only the shared path deduplicates."""
+        example = prepared("e1", "s", CHOICE)
+        duplicate = dict(example, id="e2")
+        plan = SharedPrefixPlan([example, duplicate])
+        accounting = plan.accounting()
+        self.assertEqual(accounting["reused_questions"], 1)
+        self.assertEqual(accounting["questions"], 1)
+        group = plan.groups[0]
+        # Two supplied examples, so the reference pays for two questions' worth of paths.
+        self.assertEqual(accounting["reference_leaf_tokens"],
+                         2 * group.path_count * group.path_width)
+        self.assertEqual(plan.occurrences(), {0: 2})
 
     def test_fully_shared_reported_for_normal_questions(self):
         plan = SharedPrefixPlan([prepared("e1", "s", CHOICE)])
@@ -360,8 +410,10 @@ class PlanTests(unittest.TestCase):
         group = plan.groups[0]
         self.assertEqual(group.path_width, group.prefix_length + group.suffix_width)
         self.assertEqual(group.reference_path_tokens(), group.candidate_count * group.path_width)
+        # `shared_path_tokens` mirrors the encoder's layout: the prefix once, then the
+        # suffixes padded to each chunk's widest row.
         self.assertEqual(group.shared_path_tokens(),
-                         group.prefix_length + sum(len(s) for s in group.suffix_tokens))
+                         group.prefix_length + group.path_count * group.suffix_width)
         self.assertLessEqual(group.shared_path_tokens(), group.reference_path_tokens())
         self.assertGreaterEqual(group.prefix_length, 1)
         self.assertGreaterEqual(group.suffix_width, 2)

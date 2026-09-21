@@ -165,13 +165,35 @@ class PrefixGroup:
         """Path tokens the reference implementation would evaluate for this question."""
         return self.path_count * self.path_width
 
-    def shared_path_tokens(self):
-        """Path tokens the shared implementation evaluates for this question.
+    def shared_path_tokens(self, suffix_chunk=None):
+        """Path tokens the shared implementation actually evaluates for this question.
 
-        The prefix is counted once and each candidate contributes its own real suffix
-        length; no padding is added because candidate rows may differ in width.
+        The prefix is evaluated once. Suffixes are evaluated in chunks of `suffix_chunk`
+        rows (all candidates when omitted), and `_stage_two_inputs` pads every row in a
+        chunk to that chunk's widest suffix, so the real cost depends on the chunking
+        rather than on the sum of suffix lengths. Counting the unpadded sum understates
+        the shared cost whenever suffix lengths are uneven.
         """
-        return self.prefix_length + sum(len(suffix) for suffix in self.suffix_tokens)
+        widths = [len(suffix) for suffix in self.suffix_tokens]
+        if suffix_chunk is None:
+            return self.prefix_length + len(widths) * max(widths)
+        if type(suffix_chunk) is not int or suffix_chunk < 1:
+            raise ValueError("suffix_chunk must be None or a positive integer")
+        total = self.prefix_length
+        for start in range(0, len(widths), suffix_chunk):
+            chunk = widths[start:start + suffix_chunk]
+            total += len(chunk) * max(chunk)
+        return total
+
+    def reference_path_tokens_for(self, occurrences):
+        """Reference cost for `occurrences` copies of this question.
+
+        A reused question still appears in the input, and the reference encoder pays for
+        every copy; only the shared encoder deduplicates it.
+        """
+        if type(occurrences) is not int or occurrences < 1:
+            raise ValueError("occurrences must be a positive integer")
+        return self.path_count * occurrences * self.path_width
 
 
 class SharedPrefixPlan:
@@ -294,16 +316,30 @@ class SharedPrefixPlan:
             return None
         return max(group.path_width for group in self.groups)
 
+    def occurrences(self):
+        """How many input examples each group serves, including exact reuses."""
+        counts = {index: 1 for index in range(len(self.groups))}
+        for source in self.covered_by.values():
+            counts[source] = counts.get(source, 1) + 1
+        return counts
+
     def reference_leaf_tokens(self):
-        """Token evaluations in the reference implementation for this batch."""
+        """Token evaluations in the reference implementation for this batch.
+
+        Counts every supplied example, not just the deduplicated groups: the reference
+        encoder evaluates each copy, so omitting reuses understates its cost and inflates
+        the reported reduction.
+        """
         width = self.reference_width()
         if width is None:
             return 0
-        return width * sum(group.path_count for group in self.groups)
+        counts = self.occurrences()
+        return width * sum(self.groups[index].path_count * count
+                           for index, count in counts.items())
 
-    def accounting(self):
+    def accounting(self, suffix_chunk=None):
         reference = self.reference_leaf_tokens()
-        shared = sum(group.shared_path_tokens() for group in self.groups)
+        shared = sum(group.shared_path_tokens(suffix_chunk) for group in self.groups)
         reference_prefix = sum(group.path_count * group.prefix_length for group in self.groups)
         shared_prefix = sum(group.prefix_length for group in self.groups)
         return {
@@ -313,6 +349,10 @@ class SharedPrefixPlan:
             "reference_leaf_tokens": reference,
             "reference_padded_width": self.reference_width(),
             "shared_leaf_tokens": shared,
+            "shared_leaf_tokens_unpadded":
+                sum(group.prefix_length + sum(len(s) for s in group.suffix_tokens)
+                    for group in self.groups),
+            "suffix_chunk_assumed": suffix_chunk,
             "reference_prefix_tokens": reference_prefix,
             "shared_prefix_tokens": shared_prefix,
             "token_reduction": round(reference / shared, 6) if shared else None,

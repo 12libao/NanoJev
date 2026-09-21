@@ -81,12 +81,18 @@ def load_tokenizer(AutoTokenizer, directory):
 
 
 def payload(candidates, states):
+    """Distinct state text per state.
+
+    Varying only `id` would make every state tokenize identically, so the shared path
+    would deduplicate whole questions and the reported reduction would mix prefix sharing
+    with exact-sample reuse.
+    """
     criteria = {f"room_{i}": f"enter room {i} whose north side is "
                              f"{'open' if i % 2 else 'blocked'}" for i in range(candidates)}
     return {"states": [
         {"id": f"s{index}",
-         "state": ("Local map: A is north of the exit, B is a wall, C is open. The agent "
-                   "stands in a corridor with two untried exits."),
+         "state": (f"Local map variant {index}: A is north of the exit, B is a wall, C is "
+                   f"open. The agent stands in a corridor with {2 + index} untried exits."),
          "questions": {
              "action": {"type": "choice",
                         "instructions": "Which room should the agent enter?",
@@ -244,7 +250,12 @@ def main(argv=None):
         print(f"*** injected defect: {mutation} (checks are expected to FAIL) ***")
 
     examples = predictor.prepare_examples(payload(args.candidates, args.states), tokenizer, 4096)
-    accounting = shared_prefix.SharedPrefixPlan(examples).accounting()
+    plan = shared_prefix.SharedPrefixPlan(examples)
+    accounting = plan.accounting()
+    if accounting["reused_questions"]:
+        raise SystemExit(
+            "payload states are not distinct, so the measurement would include exact-sample "
+            "reuse on top of prefix sharing")
     encoder = shared_prefix.SharedPrefixEncoder(model.backbone,
                                                 pad_token_id=tokenizer.pad_token_id,
                                                 device=torch.device("cpu"))

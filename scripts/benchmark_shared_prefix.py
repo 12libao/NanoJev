@@ -124,9 +124,13 @@ def measure(module, model, tokenizer, device, candidates, states, repeats, max_l
             precision, suffix_chunk):
     examples = module.prepare_examples(build_payload(candidates, states), tokenizer, max_length)
     plan = module.SharedPrefixPlan(examples)
-    accounting = plan.accounting()
+    accounting = plan.accounting(suffix_chunk)
     if not accounting["fully_shared"]:
         raise RuntimeError("Benchmark payload must have a shareable prefix for every question")
+    if accounting["reused_questions"]:
+        raise RuntimeError(
+            "Benchmark states must be distinct, otherwise the measurement includes "
+            "whole-question deduplication on top of prefix sharing")
 
     import torch
 

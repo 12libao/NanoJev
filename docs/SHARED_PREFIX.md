@@ -102,7 +102,10 @@ therefore hardware independent:
 | Batch padding | every row padded to the widest path in the batch | none |
 
 `scripts/benchmark_shared_prefix.py` measures the real checkpoint. On an Apple M-series GPU
-with `sdpa` in float32, two states per candidate count:
+with `sdpa` in float32, two states per candidate count. `accounting()` counts the tokens the
+encoder actually evaluates, including chunk padding, and counts every supplied example in the
+reference cost — an earlier revision summed unpadded suffixes and skipped reused examples,
+which reported `1.96x` on a case whose true value is `1.01x`.
 
 Two states with **different** state text; Qwen3-0.6B weights loaded strictly (the base
 checkpoint stores `model.*` keys, so a naive `strict=False` load matches nothing and leaves
@@ -110,9 +113,9 @@ the backbone random — see the artifact's `corrections` field).
 
 | Candidates | Leaf tokens reference → shared | Token reduction | Wall clock (MPS fp32, 5 repeats) | Speedup | Max logit drift |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 4 | 672 → 320 | 2.10× | 200 ms → 177 ms | 1.13× | 2.7e-06 |
-| 16 | 2752 → 952 | 2.89× | 840 ms → 617 ms | 1.36× | 6.4e-06 |
-| 64 | 11008 → 3576 | 3.08× | 2900 ms → 1030 ms | 2.82× | 7.6e-06 |
+| 4 | 672 → 324 | 2.07× | 251 ms → 177 ms | 1.42× | 5.3e-06 |
+| 16 | 2752 → 1012 | 2.72× | 1114 ms → 616 ms | 1.81× | 8.3e-06 |
+| 64 | 11008 → 3700 | 2.98× | 2976 ms → 1049 ms | 2.84× | 8.9e-06 |
 
 The full artifact is `results/shared_prefix_benchmark.json`. Caveats, in the order they
 matter:
