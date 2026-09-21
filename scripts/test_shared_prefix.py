@@ -1166,6 +1166,35 @@ def _load_module(name, filename):
     return module
 
 
+class ImportStyleTests(unittest.TestCase):
+    """Both import styles must work: these files run as scripts and as `scripts.*`."""
+
+    def _run(self, code):
+        import subprocess
+        return subprocess.run([sys.executable, "-c", code], cwd=str(REPO_ROOT),
+                              capture_output=True, text=True, timeout=300)
+
+    def test_trainer_imports_as_a_package_module(self):
+        """Regression: an absolute import of decision_encoding broke `scripts.` imports."""
+        result = self._run(
+            "import sys; sys.path.insert(0, '.')\n"
+            "from scripts.predict_toy_decisions import load_decision_model_class\n"
+            "assert load_decision_model_class().__name__ == 'DecisionModel'\n"
+            "print('ok')\n")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("ok", result.stdout)
+
+    def test_trainer_exposes_the_canonical_encoder_in_both_styles(self):
+        result = self._run(
+            "import sys; sys.path.insert(0, 'scripts'); sys.path.insert(0, '.')\n"
+            "import train_toy_decisions as trainer\n"
+            "import decision_encoding\n"
+            "assert trainer.build_candidate_paths is decision_encoding.build_candidate_paths\n"
+            "print('ok')\n")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("ok", result.stdout)
+
+
 class VerifyScriptTests(unittest.TestCase):
     """The reviewer-facing reproduction script must keep working and keep failing loudly."""
 

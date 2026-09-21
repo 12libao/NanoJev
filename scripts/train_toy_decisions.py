@@ -13,9 +13,11 @@ candidate-wise generation.
 import argparse
 import hashlib
 import importlib.metadata
+import importlib.util
 import json
 import math
 import random
+import sys
 import time
 from pathlib import Path
 
@@ -25,7 +27,30 @@ import torch.nn.functional as F
 from safetensors.torch import load_file, save_file
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from decision_encoding import build_candidate_paths
+
+def _load_decision_encoding():
+    """Import the canonical encoder as a top-level module.
+
+    `scripts/` is on `sys.path` when these files run as scripts, but not when the
+    directory is imported as a package. The repository already relies on top-level names
+    (`calibrated_objectives`, `predict_toy_decisions`), so load the same way and register
+    under the real name, which keeps one implementation shared by both import styles.
+    """
+    name = "decision_encoding"
+    if name in sys.modules:
+        return sys.modules[name]
+    path = Path(__file__).with_name(name + ".py")
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+decision_encoding = _load_decision_encoding()
+build_candidate_paths = decision_encoding.build_candidate_paths
 
 
 def dump(path, obj):
