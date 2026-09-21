@@ -15,6 +15,7 @@ Run: `python3 -m pytest scripts/test_shared_prefix.py -q`
 import importlib.util
 import json
 import math
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -32,6 +33,7 @@ from decision_encoding import (  # noqa: E402
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+LOCAL_QWEN = REPO_ROOT / "checkpoints" / "Qwen3-0.6B"
 
 
 def resolve_checkpoint_root():
@@ -1027,6 +1029,55 @@ def _load_module(name, filename):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+class VerifyScriptTests(unittest.TestCase):
+    """The reviewer-facing reproduction script must keep working and keep failing loudly."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            import torch  # noqa: F401
+        except ImportError as error:  # pragma: no cover
+            raise unittest.SkipTest(f"torch unavailable: {error}")
+        cls.script = Path(__file__).with_name("verify_shared_prefix.py")
+        if not cls.script.is_file():
+            raise unittest.SkipTest("verify script absent")
+
+    def _run(self, *extra, mutation=None):
+        import subprocess
+        environment = dict(os.environ)
+        if mutation:
+            environment["NANOJEV_VERIFY_MUTATE"] = mutation
+        else:
+            environment.pop("NANOJEV_VERIFY_MUTATE", None)
+        # Small batches: each subprocess loads a model, and the point is the verdict,
+        # not the workload. The injected defects move logits by ~1e-1 even at this size.
+        return subprocess.run([sys.executable, str(self.script), "--candidates", "3",
+                               "--states", "1", *extra],
+                              capture_output=True, text=True, env=environment, timeout=900)
+
+    def test_script_passes_on_a_clean_tree(self):
+        result = self._run()
+        if result.returncode != 0 and "no local tokenizer" in (result.stdout + result.stderr):
+            self.skipTest("no local tokenizer available")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("oracle bitwise identical   True", result.stdout)
+        self.assertIn("PASS", result.stdout)
+
+    def test_script_fails_when_a_defect_is_injected(self):
+        for mutation in ("leak", "no_prefix", "shifted_positions"):
+            result = self._run(mutation=mutation)
+            if "no local tokenizer" in (result.stdout + result.stderr):
+                self.skipTest("no local tokenizer available")
+            self.assertEqual(result.returncode, 1,
+                             f"{mutation} was not detected:\n{result.stdout}")
+            self.assertIn("FAIL", result.stdout)
+
+    def test_script_rejects_a_checkpoint_that_is_not_the_release(self):
+        result = self._run("--checkpoint-dir", str(LOCAL_QWEN))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("missing", result.stdout + result.stderr)
 
 
 class ReleasedCheckpointTests(unittest.TestCase):
