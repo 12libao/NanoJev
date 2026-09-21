@@ -4,6 +4,8 @@
 
 **一个 0.6B 并行决策模型：输入状态与问题，直接得到完整概率分布，无需生成答案 token。**
 
+> **新项目：[JevHarness](https://github.com/TianyuCodings/JevHarness)** — 让 LLM 围绕 [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) 编写面向具体任务的决策程序，并可利用奖励与执行轨迹进一步优化。附有可交互的 Pokémon 演示。
+
 [体验 ViZDoom](https://nanojev-dev.tianyuchen99.chatgpt.site/?autoplay=1) · [Maze 与 Snake](https://nanojev-dev.tianyuchen99.chatgpt.site/side-by-side?autoplay=1#maze) · [模型](https://huggingface.co/C-Tianyu/NanoJev) · [数据集](https://huggingface.co/datasets/C-Tianyu/NanoJev-Data)
 
 **现在支持 ViZDoom：** 同一个 checkpoint 完成 Basic 的瞄准射击、Predict Position 的移动目标火箭射击，同时支持 Maze 和 Snake。
