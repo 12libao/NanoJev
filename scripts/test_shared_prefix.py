@@ -1195,6 +1195,70 @@ class ImportStyleTests(unittest.TestCase):
         self.assertIn("ok", result.stdout)
 
 
+class SharedPrefixCliTests(unittest.TestCase):
+    """The two CLI tools share one setup path; keep it honest."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cli = _load_sibling("shared_prefix_cli")
+
+    def test_loader_returns_one_module_object_per_name(self):
+        first = self.cli.load_sibling("decision_encoding")
+        second = self.cli.load_sibling("decision_encoding")
+        self.assertIs(first, second)
+
+    def test_loader_rejects_a_missing_module(self):
+        with self.assertRaises(SystemExit):
+            self.cli.load_sibling("no_such_module_here")
+
+    def test_distinct_payload_has_no_exact_reuse(self):
+        """A payload that reused samples would silently mix in whole-question dedup."""
+        for candidates, states in ((2, 1), (4, 3), (16, 2)):
+            examples = prepared_payload(self.cli, candidates, states)
+            plan = SharedPrefixPlan(examples)
+            accounting = plan.accounting()
+            self.assertEqual(accounting["reused_questions"], 0, (candidates, states))
+            self.assertTrue(accounting["fully_shared"], (candidates, states))
+            self.assertEqual(accounting["covered_examples"], len(examples))
+
+    def test_distinct_payload_carries_a_boolean_question(self):
+        examples = prepared_payload(self.cli, 4, 2)
+        kinds = {example["qid"] for example in examples}
+        self.assertEqual(kinds, {"action", "safe"})
+        self.assertEqual(len(examples), 4)
+
+    def test_released_and_base_layouts_are_resolved(self):
+        root = resolve_checkpoint_root()
+        if root is None:
+            self.skipTest("no local checkpoint")
+        weights = self.cli.find_weights(root)
+        self.assertTrue(weights.is_file())
+        self.assertEqual(self.cli.sha256_file(weights), self.cli.sha256_file(weights))
+
+    def test_missing_weights_is_reported(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as empty:
+            with self.assertRaises(SystemExit):
+                self.cli.find_weights(empty)
+
+
+def prepared_payload(cli, candidates, states):
+    """Run the CLI payload through the canonical encoder without loading a model."""
+    import importlib.util as _u
+    spec = _u.spec_from_file_location("cli_payload_predict",
+                                      Path(__file__).with_name("predict_toy_decisions.py"))
+    predictor = _u.module_from_spec(spec)
+    spec.loader.exec_module(predictor)
+    root = resolve_checkpoint_root()
+    if root is None:
+        raise unittest.SkipTest("no local tokenizer")
+    from transformers import AutoTokenizer
+    tokenizer = _load_release_tokenizer(AutoTokenizer, root)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    return predictor.prepare_examples(cli.distinct_payload(candidates, states), tokenizer, 8192)
+
+
 class VerifyScriptTests(unittest.TestCase):
     """The reviewer-facing reproduction script must keep working and keep failing loudly."""
 
@@ -1243,6 +1307,162 @@ class VerifyScriptTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("missing", result.stdout + result.stderr)
 
+
+def _resolve_tokenizer_root():
+    """Reuse the checkpoint resolver the other tests use."""
+    return resolve_checkpoint_root()
+
+
+def _load_sibling(name):
+    path = Path(__file__).with_name(name + ".py")
+    spec = importlib.util.spec_from_file_location("merged_" + name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class PredictorParityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        try:
+            import torch
+            from transformers import AutoConfig, AutoModel
+        except ImportError as error:  # pragma: no cover
+            raise unittest.SkipTest(f"torch/transformers unavailable: {error}")
+        cls.torch = torch
+        cls.predict = _load_sibling("predict_toy_decisions")
+        cls.shared = _load_sibling("shared_prefix")
+        cls.trainer = _load_sibling("train_toy_decisions")
+
+        from transformers import AutoTokenizer
+        source = _resolve_tokenizer_root()
+        if source is None:
+            raise unittest.SkipTest("Local Qwen3-0.6B tokenizer absent; set NANOJEV_TOKENIZER_DIR")
+        cls.tokenizer = AutoTokenizer.from_pretrained(str(source), local_files_only=True)
+        if cls.tokenizer.pad_token_id is None:
+            cls.tokenizer.pad_token = cls.tokenizer.eos_token
+
+        # The tokenizer's `vocab_size` excludes added special tokens; the checkpoint's
+        # own config carries the padded embedding size that actually covers EOS.
+        reference = AutoConfig.from_pretrained(str(source), local_files_only=True)
+        config = AutoConfig.for_model(
+            "qwen3", hidden_size=64, intermediate_size=128, num_hidden_layers=3,
+            num_attention_heads=4, num_key_value_heads=2, head_dim=16,
+            vocab_size=reference.vocab_size, max_position_embeddings=1024,
+            tie_word_embeddings=True)
+        assert cls.tokenizer.eos_token_id < config.vocab_size
+        config._attn_implementation = "eager"
+        torch.manual_seed(31)
+        cls.model = cls.trainer.DecisionModel(AutoModel.from_config(config).eval(),
+                                              "attention").eval()
+
+    def _payload(self, states=2, candidates=6):
+        return {"states": [
+            {"id": f"s{index}",
+             "state": ("Local map: A is north of the exit, B is a wall, C is open. "
+                       "The agent stands in a corridor with two untried exits."),
+             "questions": {
+                 "action": {"type": "choice", "instructions": "Which room should the agent enter?",
+                            "criteria": {f"room_{i}": f"enter room {i} whose north side is "
+                                                      f"{'open' if i % 2 else 'blocked'}"
+                                                      for i in range(candidates)}},
+                 "safe": {"type": "boolean", "instructions": "Is the chosen room safe?",
+                          "criteria": {"false": "The room contains a wall.",
+                                       "true": "The room is inside the maze and open."}}}}
+            for index in range(states)]}
+
+    def _run(self, payload, prefix_sharing, batch_questions=0):
+        """Replicate `DecisionPredictor.predict` without the CUDA-only constructor."""
+        examples = self.predict.prepare_examples(payload, self.tokenizer, 2048)
+        batches = [examples] if prefix_sharing else self.predict.complete_question_batches(
+            examples, batch_questions)
+        sharing = None
+        if prefix_sharing:
+            sharing = self.shared.SharedPrefixEncoder(self.model.backbone,
+                                                      pad_token_id=self.tokenizer.pad_token_id)
+        probabilities = {}
+        passes = 0
+        with self.torch.inference_mode():
+            for batch in batches:
+                logits, _ = self.model(batch, self.tokenizer.pad_token_id, prefix_sharing=sharing)
+                passes += 1
+                for example, values in zip(batch, logits):
+                    k = len(example["candidate_ids"])
+                    scores = values[:k].float()
+                    self.assertTrue(self.torch.isfinite(scores).all())
+                    answer = self.predict.answer_from_probabilities(
+                        example, scores.softmax(-1).cpu().tolist())
+                    probabilities[(example["state_id"], example["qid"])] = answer
+        return probabilities, passes
+
+    def test_published_probabilities_match_the_reference_path(self):
+        payload = self._payload()
+        reference, reference_passes = self._run(payload, prefix_sharing=False)
+        shared, shared_passes = self._run(payload, prefix_sharing=True)
+        self.assertEqual(set(reference), set(shared))
+        self.assertEqual(len(reference), 4)
+        worst = 0.0
+        for key, answer in reference.items():
+            other = shared[key]
+            self.assertEqual(answer["type"], other["type"])
+            self.assertEqual(answer["value"], other["value"])
+            self.assertEqual(set(answer["probabilities"]), set(other["probabilities"]))
+            for candidate, value in answer["probabilities"].items():
+                worst = max(worst, abs(value - other["probabilities"][candidate]))
+        self.assertLess(worst, 1e-4, f"published probability drift {worst}")
+        # Unbatched, both paths issue a single backbone call; the saving is in the tokens
+        # each call evaluates, not in the number of calls.
+        self.assertEqual(reference_passes, 1)
+        self.assertEqual(shared_passes, 1)
+
+    def test_reference_path_honours_batch_questions_but_shared_path_does_not(self):
+        payload = self._payload()
+        reference, reference_passes = self._run(payload, prefix_sharing=False,
+                                                batch_questions=1)
+        shared, shared_passes = self._run(payload, prefix_sharing=True, batch_questions=1)
+        self.assertEqual(reference_passes, 4)
+        # Every question owns an independent prefix cache, so a question limit no longer
+        # partitions the backbone work.
+        self.assertEqual(shared_passes, 1)
+        self.assertEqual(set(reference), set(shared))
+        for key, answer in reference.items():
+            self.assertEqual(answer["value"], shared[key]["value"])
+
+    def test_boolean_and_choice_share_one_forward_pass(self):
+        payload = self._payload(states=1, candidates=4)
+        probabilities, passes = self._run(payload, prefix_sharing=True)
+        self.assertEqual(passes, 1)
+        kinds = {key[1] for key in probabilities}
+        self.assertEqual(kinds, {"action", "safe"})
+        boolean = probabilities[("s0", "safe")]
+        self.assertEqual(boolean["type"], "boolean")
+        self.assertAlmostEqual(sum(boolean["probabilities"].values()), 1.0, places=4)
+
+    def test_shared_path_reports_structural_token_reduction(self):
+        payload = self._payload(states=3, candidates=8)
+        examples = self.predict.prepare_examples(payload, self.tokenizer, 2048)
+        plan = self.shared.SharedPrefixPlan(examples)
+        accounting = plan.accounting()
+        self.assertTrue(accounting["fully_shared"])
+        self.assertGreater(accounting["token_reduction"], 2.0)
+        # Repeating one action set across states is an exact reuse, so the plan holds
+        # fewer groups than questions and pays for each unique prefix once.
+        self.assertEqual(accounting["questions"], len(plan.groups))
+        self.assertEqual(accounting["reused_questions"], len(plan.covered_by))
+        self.assertEqual(accounting["covered_examples"], len(examples))
+        self.assertEqual(accounting["shared_prefix_tokens"], sum(
+            group.prefix_length for group in plan.groups))
+
+    def test_batch_questions_does_not_change_shared_results(self):
+        payload = self._payload()
+        limited, limited_passes = self._run(payload, prefix_sharing=True, batch_questions=1)
+        unbatched, unbatched_passes = self._run(payload, prefix_sharing=True, batch_questions=0)
+        self.assertEqual(set(limited), set(unbatched))
+        self.assertEqual((limited_passes, unbatched_passes), (1, 1))
+        for key, answer in limited.items():
+            self.assertEqual(answer["value"], unbatched[key]["value"])
+            for candidate, value in answer["probabilities"].items():
+                self.assertAlmostEqual(value, unbatched[key]["probabilities"][candidate], places=6)
 
 class ReleasedCheckpointTests(unittest.TestCase):
     """Anchor against the published `unified-games-v1` decision checkpoint.
