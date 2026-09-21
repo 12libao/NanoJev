@@ -878,6 +878,157 @@ class RealCheckpointTests(unittest.TestCase):
         self.assertEqual(encoder.stats["reused_questions"], 1)
 
 
+class TrainerServingParityTests(unittest.TestCase):
+    """The trainer and the serving entry point must encode identically.
+
+    Before this change the two built the same text layout independently; a checkpoint
+    trained on one layout could then be served with another. Both now call
+    `decision_encoding.build_candidate_paths`, and this test holds them to it on
+    identical input, including the fields each side needs but the other does not.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            from transformers import AutoTokenizer
+        except ImportError as error:  # pragma: no cover
+            raise unittest.SkipTest(f"transformers unavailable: {error}")
+        root = resolve_checkpoint_root()
+        if root is None:
+            raise unittest.SkipTest("No local Qwen3-0.6B tokenizer; set NANOJEV_CHECKPOINT_DIR")
+        cls.root = root
+        cls.tokenizer = AutoTokenizer.from_pretrained(str(root), local_files_only=True)
+        if cls.tokenizer.pad_token_id is None:
+            cls.tokenizer.pad_token = cls.tokenizer.eos_token
+        cls.trainer = _load_trainer_module()
+        cls.predictor = _load_module("parity_predict", "predict_toy_decisions.py")
+        cls._state = "Local map: A is north of the exit. 状态：两个未尝试的出口。"
+
+    def _questions(self):
+        return {
+            "choice": {"type": "choice", "instructions": "Which room should the agent enter?",
+                       "criteria": {f"room_{i}": f"enter room {i} whose north side is "
+                                                 f"{'open' if i % 2 else 'blocked'}"
+                                                 for i in range(5)}},
+            "boolean": {"type": "boolean", "instructions": "Is the chosen room safe?",
+                        "criteria": {"false": "The room contains a wall.",
+                                     "true": "The room is inside the maze and open."}},
+            "score": {"type": "score", "instructions": "How safe is the chosen room?",
+                      "criteria": ["blocked", "risky", "clear", "wide open"]},
+            "unicode": {"type": "choice", "instructions": "选择要进入的房间。",
+                        "criteria": {"东": "向东走，那里更安全", "西": "向西走，那里有墙"}},
+        }
+
+    def _write_dataset(self):
+        import json
+        import tempfile
+        state = self._state
+        questions = self._questions()
+        from decision_encoding import question_candidate_texts
+
+        def candidate_ids(question):
+            return question_candidate_texts(question)[0]
+
+        def gold(question):
+            ids = candidate_ids(question)
+            if question["type"] == "choice":
+                return ids[0]
+            if question["type"] == "score":
+                return 0
+            return True
+
+        row = {"id": "case1", "state_id": "s1", "family_id": "f1", "split": "train",
+               "state": state, "questions": questions,
+               "gold": {qid: gold(q) for qid, q in questions.items()},
+               "teacher": {"native_probs": {
+                   qid: {k: 1.0 / len(candidate_ids(q)) for k in candidate_ids(q)}
+                   for qid, q in questions.items()}, "rounding": {}}}
+        handle = tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False,
+                                             encoding="utf-8")
+        handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+        handle.close()
+        return row, handle.name
+
+    def test_trainer_and_serving_encode_identically(self):
+        row, path = self._write_dataset()
+        try:
+            trained, _ = self.trainer.load_examples(path, self.tokenizer, 2048)
+        finally:
+            Path(path).unlink()
+        served = self.predictor.prepare_examples(
+            {"states": [{"id": row["state_id"], "state": row["state"],
+                         "questions": row["questions"]}]}, self.tokenizer, 2048)
+        by_qid = {ex["id"].split(":", 1)[1]: ex for ex in trained}
+        self.assertEqual(set(by_qid), set(self._questions()))
+        self.assertEqual(len(served), len(trained))
+        for example in served:
+            other = by_qid[example["qid"]]
+            self.assertEqual(example["candidate_ids"], other["candidate_ids"], example["qid"])
+            self.assertEqual(example["candidate_texts"], other["candidate_texts"], example["qid"])
+            self.assertEqual(example["leaf_tokens"], other["leaf_tokens"], example["qid"])
+            self.assertEqual(example["prefix_length"], other["prefix_length"], example["qid"])
+
+    def test_declared_prefix_is_a_shared_lower_bound_on_the_real_run(self):
+        """The declaration bounds the split; it is shared by every path and never exceeds one.
+
+        It is a lower bound rather than the exact common run: candidates all begin with
+        the literal `Candidate:\n`, so the greedy run is longer. That is safe here
+        because the planner splits at the declaration, which is why the trained rows
+        must land in the verified branch (asserted separately).
+        """
+        row, path = self._write_dataset()
+        try:
+            trained, _ = self.trainer.load_examples(path, self.tokenizer, 2048)
+        finally:
+            Path(path).unlink()
+        for example in trained:
+            declared = example["prefix_length"]
+            paths = example["leaf_tokens"]
+            self.assertLess(declared, min(len(p) for p in paths),
+                            f"{example['id']}: every path needs a suffix to read")
+            for path in paths:
+                self.assertEqual(path[:declared], paths[0][:declared],
+                                 f"{example['id']}: declared prefix is not shared by every path")
+            # It must be exactly the encoded state+question text, no more and no less.
+            from decision_encoding import question_prefix_segments
+            expected = []
+            for segment in question_prefix_segments(self._state, self._questions()[example["qid"]]):
+                expected.extend(self.tokenizer.encode(segment, add_special_tokens=False))
+            self.assertEqual(declared, len(expected),
+                             f"{example['id']}: declared prefix is not the state+question text")
+            self.assertEqual(paths[0][:declared], expected, example["id"])
+            self.assertLessEqual(declared, shared_prefix_length(paths),
+                                 f"{example['id']}: declared prefix exceeds the real common run")
+
+    def test_plan_uses_the_declared_split_for_trained_rows(self):
+        """Trained rows must land in the verified branch, never the unverified one."""
+        row, path = self._write_dataset()
+        try:
+            trained, _ = self.trainer.load_examples(path, self.tokenizer, 2048)
+        finally:
+            Path(path).unlink()
+        plan = SharedPrefixPlan(trained)
+        self.assertTrue(plan.fully_shared(), f"ungrouped: {plan.ungrouped}")
+        self.assertEqual(plan.accounting()["unverified_split_questions"], [],
+                         "trained rows must declare prefix_length")
+
+
+def _load_trainer_module():
+    path = Path(__file__).with_name("train_toy_decisions.py")
+    spec = importlib.util.spec_from_file_location("parity_trainer", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_module(name, filename):
+    path = Path(__file__).with_name(filename)
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class ReleasedCheckpointTests(unittest.TestCase):
     """Anchor against the published `unified-games-v1` decision checkpoint.
 
