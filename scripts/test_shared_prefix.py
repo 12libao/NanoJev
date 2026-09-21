@@ -36,6 +36,38 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LOCAL_QWEN = REPO_ROOT / "checkpoints" / "Qwen3-0.6B"
 
 
+def _load_base_backbone_weights(AutoModel, config, weights_path):
+    """Load a base-model `model.safetensors` into a bare `AutoModel(...)`.
+
+    A `Qwen3ForCausalLM` checkpoint stores `model.embed_tokens.weight` and
+    `model.layers.*`; a bare `AutoModel` names the same tensors without the `model.`
+    prefix and has no `lm_head`. `load_state_dict(..., strict=False)` therefore matches
+    **zero** keys and silently leaves the backbone at its random initialization, which
+    once made an "equivalence on the real checkpoint" claim vacuous. Remap explicitly and
+    fail on anything left over.
+    """
+    from safetensors.torch import load_file
+    target = AutoModel.from_config(config)
+    expected = set(target.state_dict())
+    state, unmapped = {}, []
+    for key, tensor in load_file(str(weights_path)).items():
+        candidate = key[len("model."):] if key.startswith("model.") else key
+        if candidate in expected:
+            state[candidate] = tensor
+        elif candidate == "lm_head.weight" and not config.tie_word_embeddings:
+            unmapped.append(key)  # a real untied head would be a genuine gap
+    if len(state) < 0.9 * len(expected):
+        raise AssertionError(
+            f"only {len(state)} of {len(expected)} backbone tensors were mapped; refusing a "
+            "silent partial load")
+    missing, unexpected = target.load_state_dict(state, strict=False)
+    if missing or unexpected or unmapped:
+        raise AssertionError(
+            f"backbone weights did not load cleanly: missing={sorted(missing)[:4]} "
+            f"unexpected={sorted(unexpected)[:4]} unmapped={unmapped[:4]}")
+    return target
+
+
 def resolve_checkpoint_root():
     """Find a local Qwen3-0.6B directory without network access.
 
@@ -800,18 +832,31 @@ class RealCheckpointTests(unittest.TestCase):
         config.use_cache = True
         config._attn_implementation = "sdpa"
         model = AutoModel.from_config(config).float()
-        # The full 28-layer Qwen3-0.6B weights anchor the claim; a directory that only
-        # ships a tokenizer still exercises the encoder on random weights and is recorded
-        # as such in `weights`.
+        # The 28-layer Qwen3-0.6B weights anchor this claim. A decision checkpoint carries
+        # a `backbone.` prefix and a decision head, so it is loaded through the full
+        # DecisionModel instead; a tokenizer-only directory is recorded as random weights.
         weights = None
+        backbone_state = None
         for name in ("best.safetensors", "model.safetensors"):
-            if (root / name).is_file():
-                weights = root / name
-                break
+            candidate = root / name
+            if not candidate.is_file():
+                continue
+            keys = load_file(str(candidate))
+            if any(key.startswith("backbone.") for key in keys):
+                weights, backbone_state = candidate, keys
+            else:
+                weights = candidate
+                model = _load_base_backbone_weights(AutoModel, config, candidate).float()
+            break
         cls.weights = weights
-        if weights is not None:
-            model.load_state_dict(load_file(str(weights)), strict=False)
         cls.decision_class = _load_decision_model_class()
+        if backbone_state is not None:
+            decision = cls.decision_class(model.eval(), "attention")
+            missing, unexpected = decision.load_state_dict(backbone_state, strict=False)
+            if missing or unexpected:
+                raise AssertionError(f"decision checkpoint load failed: missing={missing[:4]} "
+                                     f"unexpected={unexpected[:4]}")
+            model = decision.backbone
         cls.model = cls.decision_class(model.eval(), "attention").eval()
 
     def _examples(self, candidates=6, states=2, distinct_states=False):
@@ -838,7 +883,7 @@ class RealCheckpointTests(unittest.TestCase):
         self.assertEqual(encoder.stats["reused_questions"], 0)
         self.assertEqual(encoder.stats["prefix_forwards"], 3)
         self.assertLess((reference - shared).abs().max().item(),
-                        1e-2 if self.weights is None else 1e-3)
+                        1e-2 if self.weights is None else 1e-4)
 
     def _predict(self, examples, sharing):
         with self.torch.inference_mode():
@@ -862,6 +907,7 @@ class RealCheckpointTests(unittest.TestCase):
         scale = max(reference.float().abs().max().item(), 1e-6)
         self.assertLess(difference, 1e-2 * scale,
                         f"bf16 autocast drift {difference} relative to scale {scale}")
+        self.assertIsNotNone(self.weights, "this bound is only meaningful with real weights")
         # A broken mask moves logits by order 1 in this configuration, far above the
         # tolerance above, so this test fails loudly rather than silently passing.
         self.assertEqual(encoder.used_shared_prefix, True)
@@ -901,7 +947,9 @@ class RealCheckpointTests(unittest.TestCase):
         reference = self._predict(examples, None)
         shared = self._predict(examples, encoder)
         difference = (reference - shared).abs().max().item()
-        tolerance = 1e-3 if self.weights is not None else 1e-2
+        # Real weights in fp32 measure ~4e-06. Anything approaching this bound is a
+        # genuine defect: a wrong mask moves logits by ~1e-01, five orders of magnitude up.
+        tolerance = 1e-4 if self.weights is not None else 1e-2
         self.assertLess(difference, tolerance,
                         f"checkpoint drift too large ({self.weights}): {difference}")
         plan = SharedPrefixPlan(examples)
@@ -1200,7 +1248,8 @@ class ReleasedCheckpointTests(unittest.TestCase):
         shared_logits, shared_valid = run(encoder)
         self.assertTrue(torch.equal(reference_valid, shared_valid))
         difference = (reference_logits - shared_logits).abs().max().item()
-        self.assertLess(difference, 1e-3,
+        # Measured 9.5e-07 on the released weights. A defect is ~1e-01.
+        self.assertLess(difference, 1e-5,
                         f"released checkpoint drift too large: {difference}")
         # The trained head is deterministic, so the published decision must not move.
         self.assertTrue(torch.equal(reference_logits.argmax(-1), shared_logits.argmax(-1)))

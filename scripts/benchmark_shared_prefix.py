@@ -43,12 +43,19 @@ def candidate_criteria(count):
 
 
 def build_payload(candidates, states):
+    """Distinct states, deliberately.
+
+    Varying only `id` would make every state tokenize identically, so the whole question
+    would be an exact cache reuse and the measurement would report the combined benefit of
+    prefix sharing *and* whole-question deduplication. Each state carries different text so
+    the numbers attribute the saving to shared prefixes alone.
+    """
     criteria = candidate_criteria(candidates)
     return {"states": [
         {"id": f"state{index}",
-         "state": ("Local map: A is north of the exit, B is a wall, C is open. The agent "
-                   "stands in a corridor with two untried exits and remembers three "
-                   "blocked edges."),
+         "state": (f"Local map seed {index}: A is north of the exit, B is a wall, C is "
+                   f"open. The agent stands in a corridor with two untried exits and "
+                   f"remembers {3 + index} blocked edges."),
          "questions": {"action": {"type": "choice",
                                   "instructions": "Which room should the agent enter next?",
                                   "criteria": criteria}}}
@@ -63,6 +70,46 @@ def timed(fn, repeats):
         fn()
         samples.append(time.perf_counter() - started)
     return statistics.median(samples), min(samples)
+
+
+def _load_weights(trainer, AutoModel, config, backbone, weights):
+    """Load a checkpoint into a full DecisionModel and refuse a silent partial load.
+
+    Two key layouts exist here: a decision checkpoint stores `backbone.*` plus decision
+    head weights, while a base `model.safetensors` stores `model.*` and an `lm_head` that a
+    bare `AutoModel` does not have. `strict=False` matches zero keys in the second case and
+    leaves the backbone random, so the layout is resolved explicitly and leftovers are an
+    error rather than a quietly weaker benchmark.
+    """
+    import torch
+    from safetensors.torch import load_file
+    state = load_file(str(weights))
+    if any(key.startswith("backbone.") for key in state):
+        model = trainer.DecisionModel(backbone, "attention")
+        missing, unexpected = model.load_state_dict(state, strict=False)
+        if missing or unexpected:
+            raise SystemExit(f"decision checkpoint did not load cleanly: "
+                             f"missing={missing[:4]} unexpected={unexpected[:4]}")
+        print(f"loaded decision checkpoint {weights.name}: {len(state)} tensors")
+        return model
+    expected = set(backbone.state_dict())
+    remapped, dropped = {}, []
+    for key, tensor in state.items():
+        candidate = key[len("model."):] if key.startswith("model.") else key
+        if candidate in expected:
+            remapped[candidate] = tensor
+        else:
+            dropped.append(key)
+    if len(remapped) < 0.9 * len(expected):
+        raise SystemExit(f"only {len(remapped)} of {len(expected)} backbone tensors mapped "
+                         f"from {weights.name}")
+    missing, unexpected = backbone.load_state_dict(remapped, strict=False)
+    if missing or unexpected:
+        raise SystemExit(f"backbone did not load cleanly: missing={missing[:4]} "
+                         f"unexpected={unexpected[:4]}")
+    print(f"loaded base backbone {weights.name}: {len(remapped)} tensors "
+          f"(ignored {len(dropped)} head tensors)")
+    return trainer.DecisionModel(backbone, "attention")
 
 
 def autocast_context(torch, device, precision):
@@ -163,20 +210,18 @@ def main(argv=None):
     config._attn_implementation = "sdpa"
     backbone = AutoModel.from_config(config)
     weights = root / "best.safetensors"
-    weights_only = weights.is_file()
-    if weights_only:
-        backbone.load_state_dict(load_file(str(weights)), strict=False)
-    else:
-        # A bare base-model directory has no decision head; the backbone weights alone
-        # are enough to benchmark encoding, and the head stays at its initialization.
-        base = root / "model.safetensors"
-        if not base.is_file():
-            raise SystemExit(f"No weights at {weights} or {base}")
-        backbone.load_state_dict(load_file(str(base)), strict=False)
-    dtype = {"fp32": torch.float32, "bf16": torch.bfloat16}[args.precision]
-    backbone = backbone.to(dtype).eval()
+    if not weights.is_file():
+        weights = root / "model.safetensors"
+    if not weights.is_file():
+        raise SystemExit(f"No weights under {root}")
+    model = _load_weights(trainer, AutoModel, config, backbone, weights)
+    # A base checkpoint stores bf16 tensors; freshly built decision-head parameters are
+    # float32. Pin every parameter to float32 and apply bf16 as autocast, which is what
+    # the serving path does (`DecisionPredictor` calls `.float()` for the same reason).
+    # Without this the two dtypes meet inside a linear layer.
     device = torch.device(args.device)
-    model = trainer.DecisionModel(backbone, "attention").to(device=device, dtype=dtype).eval()
+    model = model.to(device=device, dtype=torch.float32).eval()
+    print(f"parameters pinned to float32; precision mode {args.precision}")
 
     rows = []
     for candidates in [int(value) for value in args.candidates.split(",")]:

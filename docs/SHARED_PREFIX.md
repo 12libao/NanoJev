@@ -38,9 +38,16 @@ costs `K * (P + S)` token evaluations of which `K * P` are duplicate work.
    disturb the shared prefix.
 
 The prefix keys and values are handed to the model through a zero-stride `expand`, so the
-prefix is stored once no matter how many candidate rows read it. Candidate rows are
-processed in optional chunks (`suffix_chunk`) to bound peak memory for large candidate
-sets.
+broadcast itself does not copy them, and the prefix is never re-encoded. Candidate rows are
+processed in optional chunks (`suffix_chunk`) so that the cache built during the suffix pass
+stays bounded.
+
+**Memory caveat.** The scan above is about compute. The KV cache is a separate matter:
+`DynamicLayer.update` appends with `torch.cat(..., dim=-2)`, so the suffix stage materializes
+`chunk` copies of the prefix keys and values alongside their suffixes — `O(chunk * (P + S))`,
+not `O(P + chunk * S)`. Chunking bounds the candidate dimension, but the prefix is *not* held
+once during attention. The saving is re-encoding work, not peak cache memory, and at small
+`K` the added mask and the per-question prefill can outweigh it (see the timings below).
 
 ## Equivalence argument
 
@@ -97,22 +104,33 @@ therefore hardware independent:
 `scripts/benchmark_shared_prefix.py` measures the real checkpoint. On an Apple M-series GPU
 with `sdpa` in float32, two states per candidate count:
 
-| Candidates | Leaf tokens reference → shared | Token reduction | Wall clock reference → shared | Speedup | Max logit drift |
+Two states with **different** state text; Qwen3-0.6B weights loaded strictly (the base
+checkpoint stores `model.*` keys, so a naive `strict=False` load matches nothing and leaves
+the backbone random — see the artifact's `corrections` field).
+
+| Candidates | Leaf tokens reference → shared | Token reduction | Wall clock (MPS fp32, 5 repeats) | Speedup | Max logit drift |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 4 | 320 → 156 | 2.05× | 351 ms → 170 ms | 2.07× | 1.5e-06 |
-| 16 | 1312 → 472 | 2.78× | 1378 ms → 440 ms | 3.13× | 1.6e-06 |
-| 64 | 5248 → 1784 | 2.94× | 5915 ms → 1261 ms | 4.69× | 2.0e-06 |
+| 4 | 672 → 320 | 2.10× | 200 ms → 177 ms | 1.13× | 2.7e-06 |
+| 16 | 2752 → 952 | 2.89× | 840 ms → 617 ms | 1.36× | 6.4e-06 |
+| 64 | 11008 → 3576 | 3.08× | 2900 ms → 1030 ms | 2.82× | 7.6e-06 |
 
-The full artifact is `results/shared_prefix_benchmark.json`. Two honest caveats:
+The full artifact is `results/shared_prefix_benchmark.json`. Caveats, in the order they
+matter:
 
-* Token reduction is *not* wall-clock reduction. The suffix pass still attends over the
-  cached prefix, so attention cost grows with prefix length even when the prefix is no
-  longer re-encoded. Measured speedup trails the token ratio.
-* Peak accelerator memory falls from `O(K * W)` to `O(P + chunk * S_max)`, which is what
-  makes very large candidate sets feasible rather than merely faster. Timings are machine
-  specific and are recorded in the artifact, not asserted as constants.
-* bfloat16 autocast on the same machine measured `0.79 s -> 0.22 s` at 16 candidates and
-  `3.20 s -> 0.62 s` at 64, with `token_reduction` unchanged at `2.78x` and `2.94x`.
+* **Small `K` does not reliably win.** At 4 candidates the median is 1.13× and the best
+  single sample was 0.96×, i.e. no gain. On CPU float32 the same configuration measured
+  **0.73×** — slower — because the per-question prefix prefill and the additive 4D mask cost
+  more than they save when the prefix is short. Treat the optimization as worthwhile from
+  roughly `K >= 16`, and measure your own workload.
+* Timings on this machine are noisy (MPS medians moved by ~50% between runs). Token
+  reduction is exact and hardware independent; wall clock is recorded, never promised.
+* Token reduction is not wall-clock reduction: the suffix pass still attends over the cached
+  prefix, so attention cost grows with prefix length even though the prefix is not
+  re-encoded.
+* The memory complexity claim was **wrong in an earlier revision of this document** and is
+  corrected above: the suffix pass holds `O(chunk * (P + S))`.
+* Only eager and SDPA were measured. The production path is CUDA bfloat16, which was not
+  available here.
 
 ## Using it
 

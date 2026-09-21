@@ -414,8 +414,14 @@ class CacheAdapter:
     """Fail-loud adapter over a transformers `Cache`-like object.
 
     `prefixed(rows)` returns a shallow clone whose layer keys and values carry a
-    zero-stride batch dimension of size `rows`, so the prefix is materialized
-    once even when many candidate rows use it.
+    zero-stride batch dimension of size `rows`, so the broadcast itself does not copy
+    the prefix.
+
+    What this does *not* do is keep the prefix to one copy for the whole suffix pass.
+    `DynamicLayer.update` appends the new keys and values with `torch.cat(..., dim=-2)`,
+    which materializes `rows` copies of the prefix plus their suffixes. The saving is in
+    *compute* — the prefix is never re-encoded — not in peak cache memory. See
+    `docs/SHARED_PREFIX.md` for the measured token counts and the memory caveat.
     """
 
     @staticmethod
